@@ -1,6 +1,6 @@
 // YOUR PASSWORDS — EDIT THESE!
-process.env.ADMIN_PASSWORD = "MySecretPassword123";
-process.env.SESSION_SECRET = "AnyLongRandomText12345abcxyz789";
+process.env.ADMIN_PASSWORD = "Giraffe";
+process.env.SESSION_SECRET = "Giraffe";
 
 require('dotenv').config();
 const express = require('express');
