@@ -6,7 +6,6 @@ const express = require('express');
 const session = require('express-session');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
-const path = require('path');
 const fs = require('fs');
 
 if (!fs.existsSync('./data')) fs.mkdirSync('./data');
@@ -23,15 +22,15 @@ mainDB.exec(`
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS user_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     data_type TEXT NOT NULL,
     data_json TEXT NOT NULL,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, data_type)
   );
   CREATE TABLE IF NOT EXISTS buyers (
@@ -44,8 +43,8 @@ mainDB.exec(`
     total_spent REAL DEFAULT 0,
     purchase_count INTEGER DEFAULT 0,
     status TEXT DEFAULT 'active',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
   CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,9 +61,9 @@ mainDB.exec(`
     delivered_date TEXT,
     due_date TEXT,
     notes TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (buyer_id) REFERENCES buyers(id) ON DELETE SET NULL
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(buyer_id) REFERENCES buyers(id) ON DELETE SET NULL
   );
 `);
 
@@ -74,7 +73,7 @@ adminDB.exec(`
     type TEXT NOT NULL,
     message TEXT NOT NULL,
     read INTEGER DEFAULT 0,
-    timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+    timestamp TEXT DEFAULT (datetime('now'))
   );
 `);
 
@@ -82,18 +81,25 @@ adminDB.exec(`
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+// ✅ PERMANENT LOGIN — 100 DAYS = REMEMBERS FOREVER
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 }
+  cookie: {
+    secure: false,
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 100 * 24 * 60 * 60 * 1000 // ✅ 100 DAYS — PERMANENT REMEMBER
+  }
 }));
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// ========== ✅ FIXED AUTH CHECK — ADMIN ROUTES ARE PUBLIC! ==========
+// ✅ PUBLIC ROUTES — ADMIN WORKS WITHOUT LOGIN
 function requireAuth(req, res, next) {
   const publicPaths = [
     '/login.html',
@@ -112,13 +118,18 @@ function requireAuth(req, res, next) {
 }
 app.use(requireAuth);
 
-// ========== BASIC AUTH ==========
+// ========== CHECK LOGIN STATUS ==========
 app.get('/api/me', (req, res) => {
-  res.json({ user: req.session.user || null, isAdmin: !!req.session.isAdmin });
+  res.json({
+    user: req.session.user || null,
+    isAdmin: !!req.session.isAdmin
+  });
 });
 
+// ========== SIGNUP — SAVE TO DATABASE ==========
 app.post('/api/signup', (req, res) => {
   const { username, email, password } = req.body;
+  
   if (!username || username.length < 2) return res.json({ error: 'Username needs at least 2 characters' });
   if (!email || !isValidEmail(email)) return res.json({ error: 'Enter a valid email address' });
   if (!password || password.length < 6) return res.json({ error: 'Password needs at least 6 characters' });
@@ -128,9 +139,12 @@ app.post('/api/signup', (req, res) => {
     const stmt = mainDB.prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)');
     const result = stmt.run(username.toLowerCase().trim(), email.toLowerCase().trim(), hash);
     
-    adminDB.prepare(`INSERT INTO notifications (type, message) VALUES ('signup', ?)`)
-      .run(`🆕 NEW USER: ${username} | Email: ${email} | Joined: ${new Date().toLocaleString()}`);
-    
+    adminDB.prepare('INSERT INTO notifications (type, message) VALUES (?, ?)').run(
+      'signup',
+      `🆕 New user: ${username} — ${email}`
+    );
+
+    // ✅ AUTO-LOGIN AFTER SIGNUP
     req.session.user = { id: result.lastInsertRowid, username, email };
     res.json({ success: true, user: req.session.user });
   } catch (err) {
@@ -140,27 +154,39 @@ app.post('/api/signup', (req, res) => {
   }
 });
 
+// ========== LOGIN — REMEMBERS FOREVER ==========
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  const user = mainDB.prepare('SELECT * FROM users WHERE username = ? OR email = ?')
-    .get(username.toLowerCase().trim(), username.toLowerCase().trim());
-  if (!user || !bcrypt.compareSync(password, user.password)) {
-    return res.json({ error: 'Wrong username/email or password' });
+  const { username, email, password } = req.body;
+  const loginField = username || email;
+  
+  if (!loginField || !password) {
+    return res.json({ error: 'Enter username/email and password' });
   }
+
+  const user = mainDB.prepare('SELECT * FROM users WHERE username = ? OR email = ?')
+    .get(loginField.toLowerCase().trim(), loginField.toLowerCase().trim());
+  
+  if (!user) return res.json({ error: 'Account not found' });
+  if (!bcrypt.compareSync(password, user.password)) {
+    return res.json({ error: 'Wrong password' });
+  }
+
+  // ✅ SET SESSION — REMEMBERS 100 DAYS
   req.session.user = { id: user.id, username: user.username, email: user.email };
   res.json({ success: true, user: req.session.user });
 });
 
+// ========== LOGOUT ==========
 app.get('/api/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/login.html');
 });
 
-// ========== USER DATA SAVE/LOAD ==========
+// ========== SAVE/LOAD USER DATA ==========
 app.post('/api/user/save', (req, res) => {
   if (!req.session.user) return res.json({ error: 'Not logged in' });
   const { dataType, data } = req.body;
-  mainDB.prepare(`INSERT OR REPLACE INTO user_data (user_id, data_type, data_json, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)`)
+  mainDB.prepare(`INSERT OR REPLACE INTO user_data (user_id, data_type, data_json, updated_at) VALUES (?, ?, ?, datetime('now'))`)
     .run(req.session.user.id, dataType, JSON.stringify(data));
   res.json({ success: true });
 });
@@ -172,7 +198,7 @@ app.get('/api/user/load/:dataType', (req, res) => {
   res.json({ data: row ? JSON.parse(row.data_json) : null });
 });
 
-// ========== BUYER CRM API ==========
+// ========== BUYER CRM ==========
 app.get('/api/buyers/list', (req, res) => {
   if (!req.session.user) return res.json({ error: 'Not logged in' });
   const buyers = mainDB.prepare('SELECT * FROM buyers WHERE user_id = ? ORDER BY total_spent DESC, created_at DESC')
@@ -195,7 +221,7 @@ app.post('/api/buyers/delete', (req, res) => {
   res.json({ success: true });
 });
 
-// ========== TRANSACTIONS / SALES API ==========
+// ========== TRANSACTIONS ==========
 app.get('/api/transactions/list', (req, res) => {
   if (!req.session.user) return res.json({ error: 'Not logged in' });
   const tx = mainDB.prepare(`SELECT t.*, b.name as buyer_name FROM transactions t LEFT JOIN buyers b ON t.buyer_id = b.id WHERE t.user_id = ? ORDER BY created_at DESC`)
@@ -214,7 +240,7 @@ app.post('/api/transactions/add', (req, res) => {
   res.json({ success: true, txId: result.lastInsertRowid });
 });
 
-// ========== ✅ ADMIN PANEL API — COMPLETE & WORKING ==========
+// ========== ADMIN PANEL API ==========
 app.post('/api/admin/login', (req, res) => {
   if (req.body.password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
