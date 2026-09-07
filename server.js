@@ -264,4 +264,208 @@ app.post('/api/admin/notifications/read', (req, res) => {
 });
 
 console.log('🚀 RR Resell Tracker — FULL SYSTEM ONLINE');
+// ========== 🔐 ENCRYPTION — SECURELY STORE VINTED TOKENS ==========
+const crypto = require('crypto');
+const ENCRYPTION_KEY = crypto.scryptSync(process.env.SESSION_SECRET, 'salt', 32); // Derive from your secret
+const IV_LENGTH = 16;
+
+function encrypt(text) {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+function decrypt(text) {
+  try {
+    const parts = text.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encrypted = parts[1];
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch { return null; }
+}
+
+// ========== VINTED TOKEN DATABASE SETUP ==========
+mainDB.exec(`
+  CREATE TABLE IF NOT EXISTS vinted_credentials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    refresh_token TEXT NOT NULL,
+    access_token TEXT,
+    token_expires_at TEXT,
+    last_sync_at TEXT,
+    sync_status TEXT DEFAULT 'idle',
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
+// ========== SAVE VINTED TOKEN — ENCRYPTED ==========
+app.post('/api/vinted/save-token', (req, res) => {
+  if (!req.session.user) return res.json({ error: 'Not logged in' });
+  const { refreshToken } = req.body;
+  if (!refreshToken || refreshToken.length < 20) {
+    return res.json({ error: 'Please enter a valid Refresh Token' });
+  }
+
+  const encrypted = encrypt(refreshToken.trim());
+  
+  mainDB.prepare(`INSERT OR REPLACE INTO vinted_credentials 
+    (user_id, refresh_token, access_token, token_expires_at, last_sync_at, sync_status) 
+    VALUES (?, ?, NULL, NULL, NULL, 'pending')`)
+    .run(req.session.user.id, encrypted);
+
+  res.json({ success: true, message: '✅ Vinted token saved! Sync will start shortly...' });
+});
+
+// ========== DELETE VINTED TOKEN ==========
+app.post('/api/vinted/remove-token', (req, res) => {
+  if (!req.session.user) return res.json({ error: 'Not logged in' });
+  mainDB.prepare('DELETE FROM vinted_credentials WHERE user_id = ?').run(req.session.user.id);
+  res.json({ success: true, message: '✅ Vinted sync removed' });
+});
+
+// ========== GET VINTED SYNC STATUS ==========
+app.get('/api/vinted/status', (req, res) => {
+  if (!req.session.user) return res.json({ error: 'Not logged in' });
+  const row = mainDB.prepare('SELECT id, last_sync_at, sync_status FROM vinted_credentials WHERE user_id = ?')
+    .get(req.session.user.id);
+  res.json({ 
+    hasToken: !!row, 
+    lastSync: row?.last_sync_at,
+    status: row?.sync_status || 'idle'
+  });
+});
+
+// ========== 🔄 MANUAL SYNC TRIGGER (also runs auto every 4h) ==========
+app.post('/api/vinted/sync-now', async (req, res) => {
+  if (!req.session.user) return res.json({ error: 'Not logged in' });
+  
+  const creds = mainDB.prepare('SELECT * FROM vinted_credentials WHERE user_id = ?').get(req.session.user.id);
+  if (!creds) return res.json({ error: 'No Vinted token found' });
+
+  const refreshToken = decrypt(creds.refresh_token);
+  if (!refreshToken) return res.json({ error: 'Token corrupted — please re-enter' });
+
+  try {
+    // Step 1: Get fresh Access Token from Vinted
+    const tokenRes = await fetch('https://www.vinted.fr/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        scope: 'read'
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      mainDB.prepare('UPDATE vinted_credentials SET sync_status = "error" WHERE user_id = ?').run(req.session.user.id);
+      return res.json({ error: '❌ Invalid or expired Refresh Token — please update it' });
+    }
+
+    const accessToken = tokenData.access_token;
+    const expiresAt = new Date(Date.now() + (tokenData.expires_in || 86400) * 1000).toISOString();
+
+    // Step 2: Fetch User's Sales / Transactions
+    const salesRes = await fetch('https://api.vinted.com/me/transactions?type=sold&per_page=50', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    const salesData = await salesRes.json();
+    const items = salesData.transactions || [];
+    let newSalesCount = 0;
+
+    // Step 3: Auto-Add NEW sales to database
+    for (const item of items) {
+      const existing = mainDB.prepare('SELECT id FROM transactions WHERE user_id = ? AND item_name LIKE ? AND sold_price = ?')
+        .get(req.session.user.id, `%${item.title || item.item_name}%`, (item.total_amount || 0) / 100);
+
+      if (!existing && item.title && item.total_amount > 0) {
+        const soldPrice = Number((item.total_amount / 100).toFixed(2));
+        const fee = Number(((item.fee_amount || 0) / 100).toFixed(2));
+        
+        mainDB.prepare(`INSERT INTO transactions 
+          (user_id, item_name, buy_price, sold_price, shipping_cost, fees, status, notes) 
+          VALUES (?, ?, 0, ?, 0, ?, 'sold', '🔄 Auto-imported from Vinted')`)
+          .run(req.session.user.id, item.title || 'Vinted Item', soldPrice, fee);
+        newSalesCount++;
+      }
+    }
+
+    // Step 4: Update sync status
+    mainDB.prepare(`UPDATE vinted_credentials 
+      SET access_token = ?, token_expires_at = ?, last_sync_at = datetime('now'), sync_status = 'ok' 
+      WHERE user_id = ?`)
+      .run(accessToken, expiresAt, req.session.user.id);
+
+    res.json({ 
+      success: true, 
+      message: newSalesCount > 0 
+        ? `✅ Synced! ${newSalesCount} NEW sale(s) added!` 
+        : '✅ Synced! No new sales found.',
+      newSalesCount
+    });
+
+  } catch (err) {
+    console.error('Vinted Sync Error:', err);
+    mainDB.prepare('UPDATE vinted_credentials SET sync_status = "error" WHERE user_id = ?').run(req.session.user.id);
+    res.json({ error: '❌ Sync failed — check Refresh Token' });
+  }
+});
+
+// ========== ⏰ AUTO-SYNC BACKGROUND JOB (Every 4 Hours) ==========
+setInterval(async () => {
+  try {
+    const allCreds = mainDB.prepare('SELECT * FROM vinted_credentials').all();
+    console.log(`🔄 Auto-Sync: Checking ${allCreds.length} Vinted accounts...`);
+
+    for (const cred of allCreds) {
+      try {
+        const refreshToken = decrypt(cred.refresh_token);
+        if (!refreshToken) continue;
+
+        // Get fresh access token
+        const tokenRes = await fetch('https://www.vinted.fr/oauth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refreshToken, scope: 'read' })
+        });
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) continue;
+
+        // Fetch sales
+        const salesRes = await fetch('https://api.vinted.com/me/transactions?type=sold&per_page=50', {
+          headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+        });
+        const salesData = await salesRes.json();
+        const items = salesData.transactions || [];
+
+        // Import NEW sales
+        for (const item of items) {
+          const existing = mainDB.prepare('SELECT id FROM transactions WHERE user_id = ? AND item_name LIKE ? AND sold_price = ?')
+            .get(cred.user_id, `%${item.title || item.item_name}%`, (item.total_amount || 0) / 100);
+          
+          if (!existing && item.title && item.total_amount > 0) {
+            const soldPrice = Number((item.total_amount / 100).toFixed(2));
+            const fee = Number(((item.fee_amount || 0) / 100).toFixed(2));
+            mainDB.prepare(`INSERT INTO transactions 
+              (user_id, item_name, buy_price, sold_price, shipping_cost, fees, status, notes) 
+              VALUES (?, ?, 0, ?, 0, ?, 'sold', '🔄 Auto-imported from Vinted')`)
+              .run(cred.user_id, item.title, soldPrice, fee);
+          }
+        }
+
+        mainDB.prepare(`UPDATE vinted_credentials SET last_sync_at = datetime('now'), sync_status = 'ok' WHERE id = ?`)
+          .run(cred.id);
+      } catch (e) { /* Skip individual errors */ }
+    }
+    console.log('✅ Auto-Sync cycle complete');
+  } catch (e) { console.error('Auto-Sync Error:', e); }
+}, 4 * 60 * 60 * 1000); // ⏰ EVERY 4 HOURS
 app.listen(PORT);
