@@ -5,123 +5,158 @@
     <title>Admin Panel</title>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 30px; }
-        .box { max-width: 400px; margin: 100px auto; background: #1e293b; padding: 30px; border-radius: 16px; }
+        .login-box { max-width: 400px; margin: 100px auto; background: #1e293b; padding: 30px; border-radius: 16px; }
         h2 { text-align: center; color: #a855f7; }
         input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 2px solid #475569; background: #0f172a; color: white; font-size: 16px; }
-        button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #a855f7; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .error { color: #ff6b6b; margin-top: 10px; display: none; text-align: center; }
-        .content { display: none; max-width: 900px; margin: 0 auto; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .msg { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; }
+        .error { background: #7c2d2d; color: #ffb3b3; display: none; }
+        .success { background: #2d7c46; color: #b3ffc7; display: none; }
+        .content { display: none; max-width: 1000px; margin: 0 auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; font-size: 14px; text-transform: uppercase; }
         .email { color: #93c5fd; }
-        .notif { background: #2a3447; padding: 12px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #10b981; }
-        .notif.new { border-left-color: #ff6b6b; background: #1e3a5f; }
-        .status { margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; font-size: 14px; }
+        .notif { background: #2a3447; padding: 14px; margin: 10px 0; border-radius: 8px; border-left: 3px solid #10b981; }
+        .notif.new { border-left-color: #ef4444; background: #1e3a5f; }
+        .logout-btn { background: #ef4444; width: auto; padding: 8px 16px; margin-bottom: 20px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <!-- LOGIN SCREEN -->
-    <div id="loginBox" class="box">
+    <div id="loginScreen" class="login-box">
         <h2>🔒 Admin Login</h2>
         <input type="password" id="passInput" placeholder="Enter password...">
-        <button onclick="tryLogin()">🔓 Login</button>
-        <div id="statusMsg" class="status" style="background:#2a3447;">Click Login to test...</div>
-        <p id="errMsg" class="error">❌ Wrong password!</p>
+        <button onclick="doLogin()">🔓 Unlock Admin Panel</button>
+        <div id="errorMsg" class="msg error">❌ Wrong password — try: Giraffe</div>
+        <div id="workingMsg" class="msg success">✅ Checking server...</div>
     </div>
 
     <!-- ADMIN CONTENT -->
-    <div id="adminContent" class="content">
-        <h1>🔒 Admin Panel — WORKS! ✅</h1>
-        <button onclick="logout()" style="width:auto; background:#ef4444; margin-bottom:20px;">Logout</button>
-        
-        <h3>🔔 Notifications</h3>
-        <div id="notifs"></div>
-        
-        <h3 style="margin-top:30px;">👥 Users</h3>
+    <div id="adminContent" class="content hidden">
+        <h1>🔒 Admin Panel — UNLOCKED ✅</h1>
+        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+
+        <h3>🔔 New Signups</h3>
+        <div id="notifications">
+            <p style="color:#94a3b8;">Loading...</p>
+        </div>
+
+        <h3 style="margin-top: 40px;">👥 All Registered Users</h3>
         <table>
-            <tr><th>ID</th><th>Username</th><th>Email</th><th>Joined</th></tr>
-            <tbody id="usersBody"></tbody>
+            <thead>
+                <tr><th>ID</th><th>Username</th><th>Email Address</th><th>Joined</th></tr>
+            </thead>
+            <tbody id="usersTable">
+                <tr><td colspan="4" style="color:#94a3b8;">Loading...</td></tr>
+            </tbody>
         </table>
     </div>
 
 <script>
-// PASSWORD MUST MATCH server.js
 const CORRECT_PASSWORD = "Giraffe";
 
-function tryLogin() {
+function doLogin() {
     const input = document.getElementById('passInput').value.trim();
-    const status = document.getElementById('statusMsg');
-    
-    // Step 1: Check locally FIRST
+    const errorMsg = document.getElementById('errorMsg');
+    const workingMsg = document.getElementById('workingMsg');
+
+    // Hide all messages first
+    errorMsg.style.display = 'none';
+    workingMsg.style.display = 'block';
+
+    // Quick local check first
     if (input !== CORRECT_PASSWORD) {
-        status.style.background = "#7c2d2d";
-        status.textContent = "❌ Wrong password! Use: Giraffe";
+        workingMsg.style.display = 'none';
+        errorMsg.textContent = "❌ Wrong password. Try: Giraffe";
+        errorMsg.style.display = 'block';
         return;
     }
-    
-    status.style.background = "#2d7c46";
-    status.textContent = "✅ Password OK — checking server...";
-    
-    // Step 2: Send to server
+
+    // Send to server
     fetch('/api/admin/login', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({password: input})
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: input })
     })
     .then(response => {
-        status.textContent = "✅ Server replied — " + response.status;
-        return response.json();
+        // Check if server returned OK
+        if (!response.ok) {
+            throw new Error("Server error: " + response.status);
+        }
+        return response.text(); // Read as TEXT first, not JSON!
     })
-    .then(data => {
-        if (data.success) {
-            status.textContent = "✅ UNLOCKING...";
-            document.getElementById('loginBox').style.display = 'none';
-            document.getElementById('adminContent').style.display = 'block';
-            loadData();
-        } else {
-            status.style.background = "#7c2d2d";
-            status.textContent = "❌ Server said NO — check server.js password!";
+    .then(text => {
+        // Try to parse JSON manually
+        try {
+            const data = JSON.parse(text);
+            if (data.success) {
+                // ✅ UNLOCK!
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('adminContent').classList.remove('hidden');
+                loadAdminData();
+            } else {
+                throw new Error("Server said no");
+            }
+        } catch (e) {
+            // If not JSON, show what server actually said
+            workingMsg.style.display = 'none';
+            errorMsg.textContent = "❌ Server reply: " + text.substring(0, 200);
+            errorMsg.style.display = 'block';
+            console.log("Server raw reply:", text);
         }
     })
     .catch(err => {
-        status.style.background = "#7c2d2d";
-        status.textContent = "❌ ERROR: " + err.message;
+        workingMsg.style.display = 'none';
+        errorMsg.textContent = "❌ Error: " + err.message;
+        errorMsg.style.display = 'block';
     });
 }
 
-function loadData() {
+function loadAdminData() {
     fetch('/api/admin/alldata')
-    .then(r => r.json())
-    .then(res => {
-        // Show notifications
-        document.getElementById('notifs').innerHTML = 
-            res.notifications.length === 0 
-            ? "<p style='color:#94a3b8;'>No notifications</p>"
-            : res.notifications.map(n => `
-                <div class="notif ${!n.read?'new':''}">
-                    ${!n.read?'🟢':'✅'} ${n.message}
-                    <div style="font-size:12px; color:#94a3b8; margin-top:4px;">${n.timestamp}</div>
-                </div>
-              `).join('');
-        
-        // Show users
-        document.getElementById('usersBody').innerHTML = 
-            res.users.length === 0
-            ? "<tr><td colspan='4' style='color:#94a3b8;'>No users yet</td></tr>"
-            : res.users.map(u => `
-                <tr>
-                    <td>${u.id}</td>
-                    <td><strong>${u.username}</strong></td>
-                    <td class="email">${u.email}</td>
-                    <td>${u.created_at}</td>
-                </tr>
-              `).join('');
+    .then(r => r.text())
+    .then(text => {
+        try {
+            const res = JSON.parse(text);
+            
+            // Show notifications
+            if (res.notifications && res.notifications.length > 0) {
+                document.getElementById('notifications').innerHTML = res.notifications.map(n => `
+                    <div class="notif ${!n.read ? 'new' : ''}">
+                        ${!n.read ? '🟢 NEW' : '✅'} — ${n.message}
+                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">${n.timestamp}</div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('notifications').innerHTML = '<p style="color:#94a3b8;">No new signups yet.</p>';
+            }
+
+            // Show users
+            if (res.users && res.users.length > 0) {
+                document.getElementById('usersTable').innerHTML = res.users.map(u => `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td><strong>${u.username}</strong></td>
+                        <td class="email">${u.email}</td>
+                        <td>${u.created_at}</td>
+                    </tr>
+                `).join('');
+            } else {
+                document.getElementById('usersTable').innerHTML = '<tr><td colspan="4" style="color:#94a3b8;">No users registered yet.</td></tr>';
+            }
+        } catch (e) {
+            document.getElementById('notifications').innerHTML = `<p style="color:#ff6b6b;">Data error: ${text.substring(0, 300)}</p>`;
+        }
     });
 }
 
 function logout() {
-    fetch('/api/logout').then(() => window.location.href = '/login.html');
+    fetch('/api/logout').then(() => {
+        window.location.href = '/login.html';
+    });
 }
 </script>
 </body>
