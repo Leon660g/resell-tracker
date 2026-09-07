@@ -7,99 +7,219 @@
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Courier New',monospace; }
         :root { --g:#00ff41; --gd:#00aa22; --bg:#050505; --card:#0a1a0a; --border:#005511; --red:#ff4444; }
         body { background:var(--bg); color:var(--g); }
-        .glow { text-shadow:0 0 8px var(--g),0 0 16px var(--g); }
-        .bar { display:flex; background:rgba(0,30,5,0.9); border-bottom:2px solid var(--g); padding:12px 25px; align-items:center; position:sticky; top:0; z-index:99; box-shadow:0 0 20px rgba(0,255,65,0.2); }
-        .logo { font-size:1.3rem; font-weight:bold; margin-right:auto; letter-spacing:1px; }
-        .nav { display:flex; gap:8px; }
-        .btn { padding:9px 14px; border:1px solid var(--g); background:transparent; color:var(--g); border-radius:4px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
-        .btn:hover { background:var(--g); color:#002200; box-shadow:0 0 12px var(--g); }
-        .btn.active { background:var(--g); color:#002200; font-weight:bold; }
+
+        /* === TOP NAV BAR === */
+        .bar { 
+            display:flex; 
+            background:rgba(0,30,5,0.9); 
+            border-bottom:2px solid var(--g); 
+            padding:12px 25px; 
+            align-items:center; 
+            justify-content:space-between;
+            position:sticky; 
+            top:0; 
+            z-index:99; 
+        }
+        .logo-text { 
+            font-size:1.3rem; 
+            font-weight:bold; 
+            letter-spacing:1px; 
+            text-shadow:0 0 8px var(--g), 0 0 16px var(--g);
+        }
+        .nav { display:flex; gap:8px; flex-wrap:wrap; }
+        .btn { 
+            padding:9px 14px; 
+            border:1px solid var(--g); 
+            background:transparent; 
+            color:var(--g); 
+            border-radius:4px; 
+            cursor:pointer; 
+            font-family:inherit; 
+            transition:all 0.2s; 
+            font-size:0.9rem;
+        }
+        .btn:hover, .btn.active { 
+            background:var(--g); 
+            color:#000; 
+            box-shadow:0 0 12px var(--g); 
+        }
         .btn.red { border-color:var(--red); color:var(--red); }
-        .btn.red:hover { background:var(--red); color:#220000; box-shadow:0 0 12px var(--red); }
-        .wrap { max-width:1200px; margin:0 auto; padding:30px; }
-        .title { font-size:1.6rem; margin-bottom:25px; }
-        .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:35px; }
-        .card { border:1px solid var(--g); background:var(--card); padding:22px; border-radius:8px; box-shadow:0 0 12px rgba(0,255,65,0.15); transition:all 0.3s; }
-        .card:hover { box-shadow:0 0 25px rgba(0,255,65,0.3); transform:translateY(-3px); }
-        .card h3 { color:var(--gd); font-size:0.9rem; margin-bottom:10px; }
-        .card .num { font-size:1.9rem; font-weight:bold; }
-        .card.profit { border-color:#00ddff; box-shadow:0 0 12px rgba(0,221,255,0.15); }
-        .card.profit:hover { box-shadow:0 0 25px rgba(0,221,255,0.3); }
-        .grid2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
-        .panel { border:1px solid var(--border); background:var(--card); padding:20px; border-radius:8px; }
-        .panel h2 { font-size:1.05rem; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:8px; }
-        .item { padding:10px; border-bottom:1px solid #002200; display:flex; justify-content:space-between; align-items:center; }
-        .item:hover { background:#082008; }
-        .profit { color:#00ee44; }
-        .loss { color:#ff4444; }
-        .quick { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px; }
-        .qbtn { padding:16px; border:1px solid var(--g); background:var(--card); color:var(--g); border-radius:6px; cursor:pointer; font-family:inherit; font-weight:bold; transition:all 0.2s; text-align:left; }
-        .qbtn:hover { background:var(--g); color:#002200; box-shadow:0 0 15px var(--g); transform:translateY(-2px); }
+        .btn.red:hover { background:var(--red); color:#000; box-shadow:0 0 12px var(--red); }
+
+        /* === MAIN CONTENT === */
+        .wrap { max-width:1100px; margin:0 auto; padding:30px; }
+        .title { font-size:1.8rem; margin-bottom:30px; text-shadow:0 0 6px var(--g); }
+
+        /* === STATS CARDS === */
+        .stats-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:18px; margin-bottom:35px; }
+        .stat-card { 
+            background:var(--card); 
+            border:1px solid var(--border); 
+            border-radius:8px; 
+            padding:20px; 
+            box-shadow:0 0 10px rgba(0,255,65,0.08);
+        }
+        .stat-label { color:var(--gd); font-size:0.85rem; margin-bottom:8px; }
+        .stat-value { font-size:2rem; font-weight:bold; }
+        .stat-profit { color:var(--g); }
+
+        /* === RECENT SECTION === */
+        .section { 
+            background:var(--card); 
+            border:1px solid var(--border); 
+            border-radius:8px; 
+            padding:22px; 
+            margin-bottom:25px;
+        }
+        .section h3 { color:var(--g); margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+        .empty { color:#006622; font-style:italic; padding:10px; }
+
+        /* === RESPONSIVE === */
+        @media(max-width:900px){
+            .stats-grid { grid-template-columns:repeat(2, 1fr); }
+        }
+        @media(max-width:500px){
+            .stats-grid { grid-template-columns:1fr; }
+            .bar { flex-direction:column; gap:12px; padding:12px; }
+        }
     </style>
 </head>
 <body>
 
+<!-- 🟢 TOP BAR WITH RT HACKER LOGO -->
 <div class="bar">
-    <div class="logo glow">▶ RESOLTRACKER</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <!-- RT HACKER-STYLE BADGE -->
+        <div style="
+            width:44px;
+            height:44px;
+            background:#000000;
+            color:#00ff41;
+            border:2px solid #00ff41;
+            border-radius:6px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family:'Courier New',monospace;
+            font-weight:900;
+            font-size:22px;
+            letter-spacing:-2px;
+            box-shadow:0 0 10px #00ff41, inset 0 0 6px rgba(0,255,65,0.2);
+            text-shadow:0 0 8px #00ff41, 0 0 16px #00ff41;
+        ">RT</div>
+        <div class="logo-text">RESOLTRACKER</div>
+    </div>
     <div class="nav">
         <button class="btn active">Dashboard</button>
         <button class="btn" onclick="location.href='sales.html'">Sales</button>
         <button class="btn" onclick="location.href='inventory.html'">Inventory</button>
-        <button class="btn" onclick="location.href='buyers.html'">Buyers</button>
         <button class="btn" onclick="location.href='ai.html'">🎨 AI Images</button>
         <button class="btn red" onclick="location.href='/api/logout'">LOGOUT</button>
     </div>
 </div>
 
+<!-- 📊 MAIN DASHBOARD CONTENT -->
 <div class="wrap">
-    <h1 class="title glow">// SYSTEM OVERVIEW</h1>
+    <h1 class="title">▸ DASHBOARD OVERVIEW</h1>
 
-    <div class="grid">
-        <div class="card"><h3>TOTAL SALES</h3><div class="num" id="sales">£0.00</div></div>
-        <div class="card"><h3>COST BASIS</h3><div class="num" id="cost">£0.00</div></div>
-        <div class="card profit"><h3>NET PROFIT</h3><div class="num" id="profit">£0.00</div></div>
-        <div class="card"><h3>INVENTORY</h3><div class="num" id="inv">0</div></div>
+    <!-- STATS CARDS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">📦 IN STOCK</div>
+            <div class="stat-value" id="stockCount">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">💰 TOTAL SALES</div>
+            <div class="stat-value" id="salesCount">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">📈 TOTAL PROFIT</div>
+            <div class="stat-value stat-profit" id="profitTotal">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">🔵 LISTED</div>
+            <div class="stat-value" id="listedCount">—</div>
+        </div>
     </div>
 
-    <div class="grid2">
-        <div class="panel">
-            <h2>▸ RECENT SALES</h2>
-            <div id="recent"><p style="color:#005511;">No sales yet.</p></div>
-        </div>
-        <div class="panel">
-            <h2>▸ QUICK ACTIONS</h2>
-            <div class="quick">
-                <button class="qbtn" onclick="location.href='sales.html?add=1'">💰 Log Sale</button>
-                <button class="qbtn" onclick="location.href='inventory.html'">📦 Add Stock</button>
-                <button class="qbtn" onclick="location.href='ai.html'">🎨 Generate Photo</button>
-            </div>
-            <div style="margin-top:25px;">
-                <h3 style="font-size:0.95rem; color:var(--gd); margin-bottom:8px;">STATS</h3>
-                <p>• Items Sold: <span id="sold">0</span></p>
-                <p>• Buyers: <span id="buyers">0</span></p>
-                <p>• Avg Profit/Sale: £<span id="avg">0.00</span></p>
-            </div>
-        </div>
+    <!-- RECENT SALES -->
+    <div class="section">
+        <h3>▸ RECENT SALES</h3>
+        <div id="recentSales" class="empty">Loading...</div>
+    </div>
+
+    <!-- INVENTORY SUMMARY -->
+    <div class="section">
+        <h3>▸ INVENTORY SUMMARY</h3>
+        <div id="invSummary" class="empty">Loading...</div>
     </div>
 </div>
 
 <script>
-fetch('/api/dashboard').then(r=>r.json()).then(d=>{
-    document.getElementById('sales').textContent='£'+d.totalSales;
-    document.getElementById('cost').textContent='£'+d.totalCost;
-    document.getElementById('profit').textContent='£'+d.totalProfit;
-    document.getElementById('inv').textContent=d.inventoryCount;
-    document.getElementById('sold').textContent=d.soldCount;
-    document.getElementById('buyers').textContent=d.buyerCount;
-    document.getElementById('avg').textContent=d.soldCount?(d.totalProfit/d.soldCount).toFixed(2):'0.00';
+// Load dashboard data
+loadDashboard();
+
+async function loadDashboard(){
+    // Fetch inventory
+    const invRes = await fetch('/api/inventory');
+    const invData = await invRes.json();
     
-    if(d.recentTransactions.length>0){
-        document.getElementById('recent').innerHTML=d.recentTransactions.map(t=>{
-            const p=((t.sold_price||0)-(t.purchase_price||0)-(t.shipping_cost||0)-(t.fees||0)).toFixed(2);
-            return `<div class="item"><span>${t.item_name}</span><span class="${p>=0?'profit':'loss'}">£${p}</span></div>`;
+    // Fetch sales
+    const salesRes = await fetch('/api/sales');
+    const salesData = await salesRes.json();
+
+    // Calculate stats
+    const items = invData.items || [];
+    const stockItems = items.filter(i => i.status !== 'Sold');
+    const listedItems = items.filter(i => i.status === 'Listed');
+    const soldItems = items.filter(i => i.status === 'Sold');
+
+    // Update cards
+    document.getElementById('stockCount').textContent = stockItems.length;
+    document.getElementById('salesCount').textContent = soldItems.length;
+    document.getElementById('listedCount').textContent = listedItems.length;
+
+    // Calculate total profit
+    let totalProfit = 0;
+    soldItems.forEach(i => {
+        const soldPrice = i.sold_price || 0;
+        const cost = i.purchase_price || 0;
+        totalProfit += (soldPrice - cost);
+    });
+    document.getElementById('profitTotal').textContent = '£' + totalProfit.toFixed(2);
+
+    // Inventory summary
+    if(items.length === 0){
+        document.getElementById('invSummary').innerHTML = '📭 No items yet. Add stock in Inventory tab!';
+    } else {
+        document.getElementById('invSummary').innerHTML = 
+            `🟢 In Hand: ${stockItems.filter(i => i.status === 'In Hand').length} &nbsp;|&nbsp; 
+             🔵 Listed: ${listedItems.length} &nbsp;|&nbsp; 
+             ✅ Sold: ${soldItems.length}`;
+    }
+
+    // Recent sales
+    if(soldItems.length === 0){
+        document.getElementById('recentSales').innerHTML = 'No sales yet. Mark items as sold to see them here!';
+    } else {
+        const recent = soldItems.slice(-5).reverse();
+        document.getElementById('recentSales').innerHTML = recent.map(i => {
+            const profit = (i.sold_price || 0) - (i.purchase_price || 0);
+            return `<div style="padding:6px 0; border-bottom:1px solid #003311;">
+                <strong>${escapeHtml(i.item_name)}</strong> — Sold for £${(i.sold_price||0).toFixed(2)} 
+                <span style="color:${profit >= 0 ? '#00ff41' : '#ff4444'};">(£${profit.toFixed(2)} profit)</span>
+            </div>`;
         }).join('');
     }
-});
+}
+
+function escapeHtml(t){
+    if(!t) return '';
+    const div = document.createElement('div');
+    div.textContent = t;
+    return div.innerHTML;
+}
 </script>
+
 </body>
 </html>
