@@ -229,4 +229,29 @@ app.post('/api/admin/notifications/read', (req, res) => {
 });
 
 console.log('🚀 RR Resell Tracker — FULL SYSTEM ONLINE');
+// ========== ADMIN PANEL API ENDPOINTS ==========
+app.post('/api/admin/login', (req, res) => {
+  if (req.body.password === process.env.ADMIN_PASSWORD) {
+    req.session.isAdmin = true;
+    res.json({ success: true });
+  } else {
+    res.json({ success: false, error: 'Wrong password' });
+  }
+});
+
+app.get('/api/admin/alldata', (req, res) => {
+  if (!req.session.isAdmin) return res.json({ error: 'Unauthorized' });
+  const users = mainDB.prepare('SELECT id, username, email, created_at FROM users ORDER BY id DESC').all();
+  const notifications = adminDB.prepare('SELECT * FROM notifications ORDER BY timestamp DESC LIMIT 50').all();
+  res.json({ users, notifications });
+});
+
+app.post('/api/admin/notifications/read', (req, res) => {
+  if (!req.session.isAdmin) return res.json({ error: 'Unauthorized' });
+  adminDB.prepare('UPDATE notifications SET read = 1').run();
+  res.json({ success: true });
+});
+
+// ========== THIS MUST BE THE VERY LAST LINE ==========
+console.log('🚀 RR Resell Tracker — FULL SYSTEM ONLINE');
 app.listen(PORT);
