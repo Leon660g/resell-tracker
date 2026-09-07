@@ -1,88 +1,126 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 Sales — RR Resell Tracker</title>
+    <title>SALES LOG — ResellTracker</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
-        body { background: #0f172a; color: white; min-height: 100vh; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap:15px; }
-        h1 { font-size: 1.8rem; }
-        .btn { padding: 10px 18px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
-        .btn-back { background: #475569; color: white; }
-        .btn-logout { background: #ef4444; color: white; }
-        .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-        .card h2 { font-size: 1.2rem; margin-bottom: 15px; color: #3b82f6; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; }
-        .btn-primary { background: #3b82f6; color: white; margin-top: 8px; width:100%; }
-        .sale { background: #2a3447; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:10px; }
-        .profit { color: #10b981; font-weight: bold; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-        .total { font-size: 1.3rem; font-weight: bold; text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155; }
-        .empty { color: #94a3b8; text-align: center; padding: 30px; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Courier New',monospace; }
+        :root { --g:#00ff41; --gd:#00aa22; --bg:#050505; --card:#0a1a0a; --border:#005511; --red:#ff4444; }
+        body { background:var(--bg); color:var(--g); }
+        .bar { display:flex; background:rgba(0,30,5,0.9); border-bottom:2px solid var(--g); padding:12px 25px; align-items:center; position:sticky; top:0; }
+        .logo { font-size:1.3rem; font-weight:bold; margin-right:auto; }
+        .nav { display:flex; gap:8px; }
+        .btn { padding:9px 14px; border:1px solid var(--g); background:transparent; color:var(--g); border-radius:4px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+        .btn:hover, .btn.active { background:var(--g); color:#002200; box-shadow:0 0 12px var(--g); }
+        .btn.red { border-color:var(--red); color:var(--red); }
+        .wrap { max-width:1200px; margin:0 auto; padding:30px; }
+        .title { font-size:1.6rem; margin-bottom:25px; }
+        .form-box { border:1px solid var(--g); background:var(--card); padding:25px; border-radius:8px; margin-bottom:30px; box-shadow:0 0 15px rgba(0,255,65,0.15); }
+        .row { display:grid; grid-template-columns:repeat(2,1fr); gap:15px; }
+        .field { margin-bottom:15px; }
+        label { display:block; margin-bottom:5px; color:var(--gd); font-size:0.9rem; }
+        input,select { width:100%; padding:10px; background:#081a08; border:1px solid var(--border); color:var(--g); border-radius:4px; font-family:inherit; }
+        input:focus,select:focus { border-color:var(--g); box-shadow:0 0 8px var(--g); outline:none; }
+        .submit { padding:12px 25px; background:linear-gradient(180deg,var(--g),var(--gd)); color:#002200; border:none; border-radius:4px; font-weight:bold; cursor:pointer; box-shadow:0 0 12px var(--g); transition:all 0.2s; margin-top:8px; }
+        .submit:hover { box-shadow:0 0 25px var(--g); transform:translateY(-2px); }
+        .list { border:1px solid var(--border); background:var(--card); border-radius:8px; }
+        .hdr { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; padding:12px; background:#082008; border-bottom:1px solid var(--border); font-weight:bold; color:var(--gd); }
+        .row-item { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; padding:12px; border-bottom:1px solid #002200; align-items:center; }
+        .row-item:hover { background:#082008; }
+        .profit { color:#00ee44; }
+        .del { color:var(--red); cursor:pointer; }
+        .img-prev { width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid var(--border); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>💰 Sales Tracker</h1>
-            <div style="display:flex;gap:10px;">
-                <a href="index.html" class="btn btn-back">← Home</a>
-                <button class="btn btn-logout" onclick="logout()">Logout</button>
-            </div>
-        </div>
-        <div class="card">
-            <h2>➕ Record Sale</h2>
-            <div class="form-grid">
-                <div><label>Item Name</label><input type="text" id="saleName" placeholder="e.g. Sneakers"></div>
-                <div><label>Bought (£)</label><input type="number" step="0.01" id="buyPrice" placeholder="0.00"></div>
-                <div><label>Sold For (£)</label><input type="number" step="0.01" id="sellPrice" placeholder="0.00"></div>
-            </div>
-            <button class="btn btn-primary" onclick="addSale()">➕ Record Sale</button>
-        </div>
-        <div class="card">
-            <h2>📋 Sales History</h2>
-            <div id="salesList"><p class="empty">No sales recorded yet!</p></div>
-            <div class="total">Total Profit: £<span id="totalProfit">0.00</span></div>
-        </div>
+
+<div class="bar">
+    <div class="logo">▶ RESOLTRACKER</div>
+    <div class="nav">
+        <button class="btn" onclick="location.href='dashboard.html'">Dashboard</button>
+        <button class="btn active">Sales</button>
+        <button class="btn" onclick="location.href='inventory.html'">Inventory</button>
+        <button class="btn" onclick="location.href='buyers.html'">Buyers</button>
+        <button class="btn" onclick="location.href='ai.html'">🎨 AI Images</button>
+        <button class="btn red" onclick="location.href='/api/logout'">LOGOUT</button>
     </div>
+</div>
+
+<div class="wrap">
+    <h1 class="title">▸ LOG SALE</h1>
+    
+    <div class="form-box">
+        <div class="row">
+            <div class="field"><label>ITEM NAME</label><input type="text" id="name" placeholder="e.g. Nike Air Max 95"></div>
+            <div class="field"><label>CATEGORY</label><input type="text" id="cat" placeholder="Sneakers"></div>
+        </div>
+        <div class="row">
+            <div class="field"><label>BUY PRICE (£)</label><input type="number" step="0.01" id="buy" placeholder="What you paid"></div>
+            <div class="field"><label>SOLD PRICE (£)</label><input type="number" step="0.01" id="sold" placeholder="Sold for"></div>
+        </div>
+        <div class="row">
+            <div class="field"><label>FEES (£)</label><input type="number" step="0.01" id="fees" placeholder="Vinted/eBay fees"></div>
+            <div class="field"><label>SHIPPING (£)</label><input type="number" step="0.01" id="ship" placeholder="Your shipping cost"></div>
+        </div>
+        <div class="row">
+            <div class="field"><label>PLATFORM</label>
+                <select id="plat">
+                    <option>Vinted</option><option>eBay</option><option>Depop</option><option>Facebook</option><option>Other</option>
+                </select>
+            </div>
+            <div class="field"><label>DATE SOLD</label><input type="date" id="date"></div>
+        </div>
+        <button class="submit" onclick="addSale()">▶ SAVE SALE & CALC PROFIT</button>
+    </div>
+
+    <h2 class="title">▸ SALES HISTORY</h2>
+    <div class="list">
+        <div class="hdr"><div>Item</div><div>Bought</div><div>Sold</div><div>Profit</div><div>Platform</div></div>
+        <div id="list"></div>
+    </div>
+</div>
+
 <script>
-let sales = [];
-function renderSales() {
-    const list = document.getElementById('salesList');
-    if (sales.length === 0) { list.innerHTML = '<p class="empty">No sales recorded yet!</p>'; document.getElementById('totalProfit').textContent = '0.00'; return; }
-    let total = 0;
-    list.innerHTML = sales.map((sale, index) => {
-        total += sale.profit;
-        return `<div class="sale"><div><strong>${sale.name}</strong><br>Bought: £${sale.buy.toFixed(2)} → Sold: £${sale.sell.toFixed(2)} <span class="profit"> • Profit: £${sale.profit.toFixed(2)}</span></div><button class="btn-delete" onclick="deleteSale(${index})">🗑️</button></div>`;
-    }).join('');
-    document.getElementById('totalProfit').textContent = total.toFixed(2);
+loadSales();
+async function loadSales(){
+    const r=await fetch('/api/transactions');
+    const d=await r.json();
+    if(d.transactions.length===0){
+        document.getElementById('list').innerHTML='<div style="padding:20px;text-align:center;color:#005511;">No sales logged yet.</div>';
+        return;
+    }
+    document.getElementById('list').innerHTML=d.transactions.map(t=>`
+        <div class="row-item">
+            <div>${t.item_name}</div>
+            <div>£${t.purchase_price||0}</div>
+            <div>£${t.sold_price||0}</div>
+            <div class="profit">£${t.profit}</div>
+            <div>${t.platform||'—'}</div>
+        </div>
+    `).join('');
 }
-function addSale() {
-    const name = document.getElementById('saleName').value.trim();
-    const buy = parseFloat(document.getElementById('buyPrice').value);
-    const sell = parseFloat(document.getElementById('sellPrice').value);
-    if (!name || isNaN(buy) || isNaN(sell)) return alert('Fill in all fields!');
-    sales.unshift({ name, buy, sell, profit: sell - buy });
-    saveToDB(); renderSales();
-    document.getElementById('saleName').value = ''; document.getElementById('buyPrice').value = ''; document.getElementById('sellPrice').value = '';
+
+async function addSale(){
+    const d=await fetch('/api/transactions/add',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            item_name:document.getElementById('name').value,
+            category:document.getElementById('cat').value,
+            purchase_price:parseFloat(document.getElementById('buy').value||0),
+            sold_price:parseFloat(document.getElementById('sold').value||0),
+            fees:parseFloat(document.getElementById('fees').value||0),
+            shipping_cost:parseFloat(document.getElementById('ship').value||0),
+            platform:document.getElementById('plat').value,
+            sold_date:document.getElementById('date').value
+        })
+    });
+    if((await d.json()).success){
+        document.getElementById('name').value='';document.getElementById('cat').value='';
+        document.getElementById('buy').value='';document.getElementById('sold').value='';
+        document.getElementById('fees').value='';document.getElementById('ship').value='';
+        loadSales();
+    }
 }
-function deleteSale(index) {
-    if (confirm('Delete this sale?')) { sales.splice(index, 1); saveToDB(); renderSales(); }
-}
-function saveToDB() {
-    fetch('/api/user/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ dataType: 'sales', data: { sales } }) });
-}
-async function loadFromDB() {
-    const res = await fetch('/api/user/load/sales');
-    const result = await res.json();
-    if (result.data && result.data.sales) { sales = result.data.sales; renderSales(); }
-}
-function logout() { window.location.href = '/api/logout'; }
-window.addEventListener('load', loadFromDB);
 </script>
 </body>
 </html>
