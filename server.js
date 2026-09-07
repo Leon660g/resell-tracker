@@ -1,6 +1,6 @@
 // ========== YOUR PASSWORDS — EDIT THESE! ==========
 process.env.ADMIN_PASSWORD = "Giraffe";
-process.env.SESSION_SECRET = "Giraffe";
+process.env.SESSION_SECRET = "ResellTrackerSecret2026";
 
 require('dotenv').config();
 const express = require('express');
