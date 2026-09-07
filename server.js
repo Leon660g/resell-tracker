@@ -86,15 +86,16 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ✅ PERMANENT LOGIN — 100 DAYS
+// ✅ PERMANENT LOGIN — FIXED FOR RENDER HTTPS! NO MORE REDIRECT LOOP!
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  proxy: true,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'none',
     maxAge: 100 * 24 * 60 * 60 * 1000
   }
 }));
@@ -104,14 +105,16 @@ function isValidEmail(email) {
 }
 function cleanStr(str) { return str ? str.trim().substring(0, 500) : ''; }
 
-// ✅ PUBLIC ROUTES
+// ✅ PUBLIC ROUTES — FIXED AUTH CHECK
 function requireAuth(req, res, next) {
   const publicPaths = [
-    '/login.html', '/api/login', '/api/signup', '/api/me',
+    '/login.html', '/signup.html', '/api/login', '/api/signup', '/api/me',
     '/api/admin/login', '/api/admin/alldata'
   ];
   if (publicPaths.some(p => req.path.startsWith(p))) return next();
-  if (!req.session.user) return res.redirect('/login.html');
+  if (!req.session.user) {
+    return res.redirect('/login.html');
+  }
   next();
 }
 app.use(requireAuth);
