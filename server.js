@@ -94,12 +94,21 @@ function isValidEmail(email) {
 }
 
 function requireAuth(req, res, next) {
-  const publicPaths = ['/login.html', '/api/login', '/api/signup', '/api/me'];
-  if (publicPaths.some(p => req.path === p || req.path.startsWith('/api/') && publicPaths.includes(req.path))) {
+  const publicPaths = [
+    '/login.html', 
+    '/api/login', 
+    '/api/signup', 
+    '/api/me',
+    '/api/admin/login',      // ← ADD THIS
+    '/api/admin/alldata',    // ← ADD THIS
+    '/api/admin/notifications/read'  // ← ADD THIS
+  ];
+  if (publicPaths.some(p => req.path.startsWith(p))) {
     return next();
   }
   if (!req.session.user) return res.redirect('/login.html');
   next();
+}
 }
 app.use(requireAuth);
 
