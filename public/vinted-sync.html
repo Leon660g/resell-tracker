@@ -6,4 +6,150 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
         body { background: #0f172a; color: white; padding: 30px; }
-        .container { max-width: 700px; margin: 0 auto
+        .container { max-width: 650px; margin: 0 auto; }
+        h1 { color: #a855f7; margin-bottom: 10px; text-align: center; }
+        .subtitle { text-align: center; color: #94a3b8; margin-bottom: 30px; }
+        
+        .card { background: #1e293b; padding: 30px; border-radius: 16px; margin-bottom: 25px; }
+        .card h3 { color: #10b981; margin-bottom: 20px; font-size: 1.1rem; }
+        
+        input { width: 100%; padding: 14px; border-radius: 10px; border: 2px solid #475569; background: #0f172a; color: white; font-size: 14px; outline: none; }
+        input:focus { border-color: #a855f7; }
+        
+        button { padding: 12px 24px; border-radius: 10px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { transform: translateY(-2px); }
+        
+        .btn-primary { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; width: 100%; margin-top: 15px; }
+        .btn-sync { background: #10b981; color: white; margin-right: 10px; }
+        .btn-remove { background: #ef4444; color: white; margin-top: 10px; }
+        
+        .status-box { margin-top: 20px; padding: 15px; border-radius: 10px; display: none; }
+        .status-success { background: #1a3d2f; color: #b3ffc7; border-left: 3px solid #10b981; }
+        .status-error { background: #462020; color: #ffb3b3; border-left: 3px solid #ef4444; }
+        .status-info { background: #1e3a5f; color: #93c5fd; border-left: 3px solid #3b82f6; }
+        
+        .token-active { background: #1a3d2f; padding: 15px; border-radius: 10px; border-left: 3px solid #10b981; margin-bottom: 15px; }
+        .token-inactive { background: #2a3447; padding: 15px; border-radius: 10px; border-left: 3px solid #94a3b8; margin-bottom: 15px; }
+        
+        .note { font-size: 13px; color: #94a3b8; margin-top: 15px; line-height: 1.5; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔄 Vinted Auto-Sync</h1>
+    <p class="subtitle">Connect your Vinted account → Auto-import sales every 4 hours</p>
+
+    <!-- NO TOKEN YET -->
+    <div id="setupCard" class="card">
+        <h3>🔑 Paste Your Vinted Refresh Token</h3>
+        <input type="password" id="tokenInput" placeholder="vinted_refresh_token_xxxx..." autocomplete="off">
+        <button class="btn-primary" onclick="saveToken()">💾 Save & Connect Vinted</button>
+        <p class="note">
+            🔒 Your token is <b>ENCRYPTED</b> before saving — NEVER shown again.<br>
+            ⚠️ This is <b>read-only</b> — it can ONLY see your sales. It CANNOT post, buy, or sell.
+        </p>
+    </div>
+
+    <!-- TOKEN ACTIVE / SYNC STATUS -->
+    <div id="activeCard" class="card hidden">
+        <div class="token-active">
+            ✅ <b>Vinted Connected!</b>
+            <div id="lastSyncText" style="font-size:13px; color:#94a3b8; margin-top:5px;"></div>
+        </div>
+        
+        <button class="btn-sync" onclick="syncNow()">🔄 Sync Sales Now</button>
+        <button class="btn-remove" onclick="removeToken()">🗑️ Disconnect & Remove Token</button>
+        
+        <div id="statusBox" class="status-box"></div>
+        
+        <p class="note">
+            ⏰ Auto-sync runs automatically every <b>4 hours</b>.<br>
+            🆕 New sales are detected, added to your transactions, and profit calculated automatically.
+        </p>
+    </div>
+
+</div>
+
+<script>
+// ========== CHECK IF TOKEN ALREADY SAVED ==========
+window.onload = function() {
+    checkStatus();
+};
+
+function showStatus(msg, type) {
+    const box = document.getElementById('statusBox');
+    box.className = 'status-box status-' + type;
+    box.textContent = msg;
+    box.style.display = 'block';
+}
+
+async function checkStatus() {
+    const res = await fetch('/api/vinted/status');
+    const data = await res.json();
+    
+    if (data.hasToken) {
+        document.getElementById('setupCard').classList.add('hidden');
+        document.getElementById('activeCard').classList.remove('hidden');
+        document.getElementById('lastSyncText').textContent = 
+            data.lastSync ? `Last sync: ${new Date(data.lastSync).toLocaleString()}` : 'Not synced yet';
+    } else {
+        document.getElementById('setupCard').classList.remove('hidden');
+        document.getElementById('activeCard').classList.add('hidden');
+    }
+}
+
+// ========== SAVE TOKEN ==========
+async function saveToken() {
+    const token = document.getElementById('tokenInput').value.trim();
+    if (!token) return showStatus('❌ Please paste your Refresh Token first', 'error');
+    
+    showStatus('⏳ Connecting to Vinted...', 'info');
+    
+    const res = await fetch('/api/vinted/save-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: token })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+        showStatus('✅ Token saved! Syncing your sales...', 'success');
+        document.getElementById('tokenInput').value = '';
+        setTimeout(() => { syncNow(); }, 1000);
+    } else {
+        showStatus(data.error || '❌ Failed to save token', 'error');
+    }
+}
+
+// ========== MANUAL SYNC TRIGGER ==========
+async function syncNow() {
+    showStatus('🔄 Scanning Vinted for new sales...', 'info');
+    
+    const res = await fetch('/api/vinted/sync-now', { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.success) {
+        showStatus(`✅ ${data.message}`, 'success');
+        checkStatus();
+    } else {
+        showStatus(data.error || '❌ Sync failed — check your Refresh Token', 'error');
+    }
+}
+
+// ========== REMOVE TOKEN / DISCONNECT ==========
+async function removeToken() {
+    if (!confirm('Disconnect Vinted? Auto-sync will stop.')) return;
+    
+    const res = await fetch('/api/vinted/remove-token', { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.success) {
+        showStatus('✅ Vinted disconnected. Token removed.', 'success');
+        setTimeout(() => { checkStatus(); }, 1500);
+    }
+}
+</script>
+</body>
+</html>
