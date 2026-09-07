@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>REGISTER — ResellTracker</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Courier New',monospace; }
+        body { 
+            background:#050505; 
+            color:#00ff41; 
+            min-height:100vh; 
+            display:flex; 
+            align-items:center; 
+            justify-content:center; 
+            background-image:radial-gradient(circle at 50% 50%, #0a2a0a 0%, #050505 70%); 
+        }
+        .glow { text-shadow:0 0 10px #00ff41, 0 0 20px #00ff41; }
+        .box { 
+            border:2px solid #00ff41; 
+            padding:40px; 
+            border-radius:12px; 
+            background:rgba(0,20,5,0.8); 
+            box-shadow:0 0 30px rgba(0,255,65,0.25), inset 0 0 20px rgba(0,255,65,0.08); 
+            width:380px; 
+        }
+        h1 { text-align:center; margin-bottom:30px; font-size:1.8rem; letter-spacing:2px; }
+        .tag { color:#00aa22; font-size:0.9rem; margin-bottom:5px; }
+        input { 
+            width:100%; 
+            padding:12px; 
+            margin-bottom:18px; 
+            background:#081a08; 
+            border:1px solid #00ff41; 
+            color:#00ff41; 
+            border-radius:6px; 
+            font-size:15px; 
+            outline:none; 
+        }
+        input:focus { box-shadow:0 0 12px #00ff41; }
+        .btn { 
+            width:100%; 
+            padding:14px; 
+            background:linear-gradient(180deg,#00ff41,#00aa22); 
+            color:#002200; 
+            border:none; 
+            border-radius:6px; 
+            font-weight:bold; 
+            font-size:16px; 
+            cursor:pointer; 
+            margin-top:8px; 
+            box-shadow:0 0 15px rgba(0,255,65,0.4); 
+            transition:all 0.2s; 
+        }
+        .btn:hover { transform:translateY(-2px); box-shadow:0 0 25px rgba(0,255,65,0.6); }
+        .link { text-align:center; margin-top:20px; color:#00aa22; font-size:14px; cursor:pointer; }
+        .link:hover { color:#00ff41; text-decoration:underline; }
+        .status { margin-top:15px; padding:10px; border-radius:6px; display:none; }
+        .error { border:1px solid #ff4444; background:rgba(255,0,0,0.08); color:#ff6666; display:block !important; }
+        .success { border:1px solid #00ff41; background:rgba(0,255,65,0.08); color:#00ff41; display:block !important; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h1 class="glow">▶ NEW USER</h1>
+    <p style="text-align:center; color:#00aa22; margin-bottom:25px;">// CREATE ACCOUNT</p>
+    
+    <label class="tag">USERNAME:</label>
+    <input type="text" id="user" placeholder="choose username...">
+    
+    <label class="tag">EMAIL:</label>
+    <input type="email" id="email" placeholder="your@email.com">
+    
+    <label class="tag">PASSWORD:</label>
+    <input type="password" id="pass" placeholder="min. 6 characters">
+    
+    <div id="status" class="status"></div>
+    <button class="btn" onclick="signup()">▶ CREATE ACCOUNT</button>
+    <div class="link" onclick="location.href='login.html'">← Already have access? Login</div>
+</div>
+
+<script>
+async function signup(){
+    const u=document.getElementById('user').value.trim();
+    const e=document.getElementById('email').value.trim();
+    const p=document.getElementById('pass').value;
+    const s=document.getElementById('status');
+    
+    if(!u||!e||!p) return s.className='status error', s.textContent='⚠ Fill all fields';
+    if(u.length<2) return s.className='status error', s.textContent='⚠ Username too short';
+    if(p.length<6) return s.className='status error', s.textContent='⚠ Password needs min 6 characters';
+    
+    const r=await fetch('/api/signup',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username:u,email:e,password:p})
+    });
+    const d=await r.json();
+    
+    if(d.success){
+        s.className='status success';
+        s.textContent='✅ ACCOUNT CREATED — REDIRECTING...';
+        setTimeout(()=>window.location.href='/dashboard.html',1200);
+    } else {
+        s.className='status error';
+        s.textContent='⚠ '+d.error;
+    }
+}
+</script>
+</body>
+</html>
