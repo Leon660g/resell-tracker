@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DASHBOARD — ResellTracker</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Courier New',monospace; }
+        :root { --g:#00ff41; --gd:#00aa22; --bg:#050505; --card:#0a1a0a; --border:#005511; --red:#ff4444; }
+        body { background:var(--bg); color:var(--g); }
+        .glow { text-shadow:0 0 8px var(--g),0 0 16px var(--g); }
+        .bar { display:flex; background:rgba(0,30,5,0.9); border-bottom:2px solid var(--g); padding:12px 25px; align-items:center; position:sticky; top:0; z-index:99; box-shadow:0 0 20px rgba(0,255,65,0.2); }
+        .logo { font-size:1.3rem; font-weight:bold; margin-right:auto; letter-spacing:1px; }
+        .nav { display:flex; gap:8px; }
+        .btn { padding:9px 14px; border:1px solid var(--g); background:transparent; color:var(--g); border-radius:4px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+        .btn:hover { background:var(--g); color:#002200; box-shadow:0 0 12px var(--g); }
+        .btn.active { background:var(--g); color:#002200; font-weight:bold; }
+        .btn.red { border-color:var(--red); color:var(--red); }
+        .btn.red:hover { background:var(--red); color:#220000; box-shadow:0 0 12px var(--red); }
+        .wrap { max-width:1200px; margin:0 auto; padding:30px; }
+        .title { font-size:1.6rem; margin-bottom:25px; }
+        .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:35px; }
+        .card { border:1px solid var(--g); background:var(--card); padding:22px; border-radius:8px; box-shadow:0 0 12px rgba(0,255,65,0.15); transition:all 0.3s; }
+        .card:hover { box-shadow:0 0 25px rgba(0,255,65,0.3); transform:translateY(-3px); }
+        .card h3 { color:var(--gd); font-size:0.9rem; margin-bottom:10px; }
+        .card .num { font-size:1.9rem; font-weight:bold; }
+        .card.profit { border-color:#00ddff; box-shadow:0 0 12px rgba(0,221,255,0.15); }
+        .card.profit:hover { box-shadow:0 0 25px rgba(0,221,255,0.3); }
+        .grid2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+        .panel { border:1px solid var(--border); background:var(--card); padding:20px; border-radius:8px; }
+        .panel h2 { font-size:1.05rem; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+        .item { padding:10px; border-bottom:1px solid #002200; display:flex; justify-content:space-between; align-items:center; }
+        .item:hover { background:#082008; }
+        .profit { color:#00ee44; }
+        .loss { color:#ff4444; }
+        .quick { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px; }
+        .qbtn { padding:16px; border:1px solid var(--g); background:var(--card); color:var(--g); border-radius:6px; cursor:pointer; font-family:inherit; font-weight:bold; transition:all 0.2s; text-align:left; }
+        .qbtn:hover { background:var(--g); color:#002200; box-shadow:0 0 15px var(--g); transform:translateY(-2px); }
+    </style>
+</head>
+<body>
+
+<div class="bar">
+    <div class="logo glow">▶ RESOLTRACKER</div>
+    <div class="nav">
+        <button class="btn active">Dashboard</button>
+        <button class="btn" onclick="location.href='sales.html'">Sales</button>
+        <button class="btn" onclick="location.href='inventory.html'">Inventory</button>
+        <button class="btn" onclick="location.href='buyers.html'">Buyers</button>
+        <button class="btn" onclick="location.href='ai.html'">🎨 AI Images</button>
+        <button class="btn red" onclick="location.href='/api/logout'">LOGOUT</button>
+    </div>
+</div>
+
+<div class="wrap">
+    <h1 class="title glow">// SYSTEM OVERVIEW</h1>
+
+    <div class="grid">
+        <div class="card"><h3>TOTAL SALES</h3><div class="num" id="sales">£0.00</div></div>
+        <div class="card"><h3>COST BASIS</h3><div class="num" id="cost">£0.00</div></div>
+        <div class="card profit"><h3>NET PROFIT</h3><div class="num" id="profit">£0.00</div></div>
+        <div class="card"><h3>INVENTORY</h3><div class="num" id="inv">0</div></div>
+    </div>
+
+    <div class="grid2">
+        <div class="panel">
+            <h2>▸ RECENT SALES</h2>
+            <div id="recent"><p style="color:#005511;">No sales yet.</p></div>
+        </div>
+        <div class="panel">
+            <h2>▸ QUICK ACTIONS</h2>
+            <div class="quick">
+                <button class="qbtn" onclick="location.href='sales.html?add=1'">💰 Log Sale</button>
+                <button class="qbtn" onclick="location.href='inventory.html'">📦 Add Stock</button>
+                <button class="qbtn" onclick="location.href='ai.html'">🎨 Generate Photo</button>
+            </div>
+            <div style="margin-top:25px;">
+                <h3 style="font-size:0.95rem; color:var(--gd); margin-bottom:8px;">STATS</h3>
+                <p>• Items Sold: <span id="sold">0</span></p>
+                <p>• Buyers: <span id="buyers">0</span></p>
+                <p>• Avg Profit/Sale: £<span id="avg">0.00</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+fetch('/api/dashboard').then(r=>r.json()).then(d=>{
+    document.getElementById('sales').textContent='£'+d.totalSales;
+    document.getElementById('cost').textContent='£'+d.totalCost;
+    document.getElementById('profit').textContent='£'+d.totalProfit;
+    document.getElementById('inv').textContent=d.inventoryCount;
+    document.getElementById('sold').textContent=d.soldCount;
+    document.getElementById('buyers').textContent=d.buyerCount;
+    document.getElementById('avg').textContent=d.soldCount?(d.totalProfit/d.soldCount).toFixed(2):'0.00';
+    
+    if(d.recentTransactions.length>0){
+        document.getElementById('recent').innerHTML=d.recentTransactions.map(t=>{
+            const p=((t.sold_price||0)-(t.purchase_price||0)-(t.shipping_cost||0)-(t.fees||0)).toFixed(2);
+            return `<div class="item"><span>${t.item_name}</span><span class="${p>=0?'profit':'loss'}">£${p}</span></div>`;
+        }).join('');
+    }
+});
+</script>
+</body>
+</html>
