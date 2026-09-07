@@ -3,125 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔒 Admin Panel — RR Resell Tracker</title>
+    <title>🔒 Admin Panel</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
-        body { background: #0f172a; color: white; min-height: 100vh; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        h1 { font-size: 1.8rem; }
-        .btn { padding: 10px 20px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
-        .btn-logout { background: #ef4444; color: white; }
-        .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-        .card h2 { font-size: 1.1rem; margin-bottom: 15px; color: #a855f7; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:8px; }
-        .badge { background: #ef4444; color: white; padding: 3px 12px; border-radius: 20px; font-size: 0.75rem; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
-        th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #334155; }
-        th { color: #94a3b8; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
-        .notification { background: #1e293b; border-left: 4px solid #10b981; padding: 12px; margin-bottom: 8px; border-radius: 8px; font-size:0.9rem; }
-        .notification.unread { background: #2a3447; border-left-color: #ef4444; font-weight:500; }
-        .notification-time { color: #94a3b8; font-size: 0.75rem; margin-top: 4px; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-        input, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; }
-        .btn-primary { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; margin-top: 10px; }
-        .hidden { display: none !important; }
-        .access-denied { text-align: center; padding: 60px 20px; }
-        .access-denied h2 { color: #ef4444; margin-bottom: 15px; }
-        .email { color: #93c5fd; font-size:0.8rem; }
+        body { background: #0f172a; color: white; padding: 20px; }
+        .center { max-width: 400px; margin: 100px auto; text-align: center; }
+        .card { background: #1e293b; padding: 30px; border-radius: 16px; }
+        h2 { margin-bottom: 20px; color: #a855f7; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #475569; background: #0f172a; color: white; font-size: 1rem; margin-bottom: 15px; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .error { color: #ef4444; margin-top: 10px; display: none; }
+        .content { max-width: 1000px; margin: 0 auto; display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-logout { background: #ef4444; width: auto; padding: 8px 16px; }
+        .card2 { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+        th { color: #94a3b8; }
+        .email { color: #93c5fd; }
+        .notif { background: #2a3447; border-left: 3px solid #10b981; padding: 12px; margin-bottom: 8px; border-radius: 6px; }
+        .notif.new { border-left-color: #ef4444; background: #1e3a5f; }
+        .badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 8px; }
+        .empty { color: #94a3b8; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="center">
+        <div class="card">
+            <h2>🔒 Admin Login</h2>
+            <input type="password" id="passInput" placeholder="Enter Admin Password...">
+            <button onclick="login()">🔓 Unlock</button>
+            <p id="errMsg" class="error">❌ Wrong password — try again</p>
+        </div>
+    </div>
+
+    <!-- ADMIN CONTENT -->
+    <div id="adminContent" class="content">
         <div class="header">
-            <h1>🔒 Admin Control Panel</h1>
-            <button class="btn btn-logout" onclick="logout()">🚪 Logout</button>
+            <h1>🔒 Admin Panel</h1>
+            <button class="btn-logout" onclick="logout()">Logout</button>
         </div>
 
-        <div id="accessDenied" class="access-denied">
-            <h2>⛔ ACCESS DENIED</h2>
-            <p>Enter your Master Admin Password on the login page.</p>
+        <div class="card2">
+            <h3>🔔 New Signups <span id="badge"></span></h3>
+            <button onclick="markRead()" style="width:auto; padding:6px 12px; font-size:0.85rem; margin:10px 0;">✅ Mark All Read</button>
+            <div id="notifs"></div>
         </div>
 
-        <div id="adminContent" class="hidden">
-            <!-- SIGNUP NOTIFICATIONS — ACTUALLY WORKS! -->
-            <div class="card">
-                <h2>🔔 New Signups <span id="notifBadge" class="badge" style="display:none;">0 NEW</span></h2>
-                <button class="btn btn-primary" style="padding:6px 12px; font-size:0.85rem; margin-bottom:15px;" onclick="markAllRead()">✅ Mark All Read</button>
-                <div id="notificationsList"><p style="color:#94a3b8;">Loading...</p></div>
-            </div>
-
-            <!-- ALL USERS — NOW SHOWS EMAIL! -->
-            <div class="card">
-                <h2>👥 All Registered Users</h2>
-                <table>
-                    <thead><tr><th>ID</th><th>Username</th><th>📧 Email</th><th>Joined</th></tr></thead>
-                    <tbody id="usersBody"></tbody>
-                </table>
-            </div>
-
-            <!-- ALL USER DATA -->
-            <div class="card">
-                <h2>📊 All User Data & URLs</h2>
-                <table>
-                    <thead><tr><th>User</th><th>Type</th><th>Data Preview</th><th>Updated</th></tr></thead>
-                    <tbody id="dataBody"></tbody>
-                </table>
-            </div>
+        <div class="card2">
+            <h3>👥 All Users</h3>
+            <table>
+                <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Joined</th></tr></thead>
+                <tbody id="usersTable"></tbody>
+            </table>
         </div>
     </div>
 
 <script>
-// CHECK ADMIN ACCESS
-fetch('/api/me').then(r=>r.json()).then(res=>{
-    if(res.isAdmin){
-        document.getElementById('accessDenied').classList.add('hidden');
-        document.getElementById('adminContent').classList.remove('hidden');
-        loadAllData();
-    }
-});
+const ADMIN_PASS = "Giraffe"; // ← YOUR PASSWORD — MUST MATCH server.js
 
-function loadAllData(){
-    fetch('/api/admin/alldata').then(r=>r.json()).then(res=>{
-        // NOTIFICATIONS
-        const notifContainer=document.getElementById('notificationsList');
-        const unreadCount=res.notifications.filter(n=>!n.read).length;
-        const badge=document.getElementById('notifBadge');
-        if(unreadCount>0){ badge.style.display='inline'; badge.textContent=unreadCount+' NEW'; }
-        if(res.notifications.length===0){
-            notifContainer.innerHTML='<p style="color:#94a3b8;">No new signups yet.</p>';
+function login() {
+    const entered = document.getElementById('passInput').value;
+    
+    // ✅ FIRST CHECK LOCALLY — NO SERVER DELAY
+    if (entered !== ADMIN_PASS) {
+        document.getElementById('errMsg').style.display = 'block';
+        return;
+    }
+
+    // ✅ THEN SEND TO SERVER TO SET SESSION
+    fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password: entered})
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            showContent();
+            loadData();
         } else {
-            notifContainer.innerHTML=res.notifications.map(n=>`
-                <div class="notification ${!n.read?'unread':''}">
-                    <strong>${!n.read?'🟢':'✅'} ${n.message}</strong>
-                    <div class="notification-time">${n.timestamp}</div>
+            document.getElementById('errMsg').style.display = 'block';
+        }
+    });
+}
+
+function showContent() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminContent').style.display = 'block';
+}
+
+function loadData() {
+    fetch('/api/admin/alldata')
+    .then(r => r.json())
+    .then(res => {
+        // NOTIFICATIONS
+        const unread = res.notifications.filter(n => !n.read).length;
+        document.getElementById('badge').innerHTML = unread > 0 ? `<span class="badge">${unread} NEW</span>` : '';
+        
+        if (res.notifications.length === 0) {
+            document.getElementById('notifs').innerHTML = '<p class="empty">No signups yet.</p>';
+        } else {
+            document.getElementById('notifs').innerHTML = res.notifications.map(n => `
+                <div class="notif ${!n.read?'new':''}">
+                    ${!n.read?'🟢':'✅'} ${n.message}
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">${n.timestamp}</div>
                 </div>
             `).join('');
         }
 
-        // ALL USERS WITH EMAIL
-        document.getElementById('usersBody').innerHTML = res.users.map(u=>`
-            <tr><td>${u.id}</td><td>${u.username}</td><td class="email">${u.email}</td><td>${u.created_at}</td></tr>
-        `).join('');
-
-        // ALL DATA
-        document.getElementById('dataBody').innerHTML = res.allUserData.map(d=>{
-            let preview = d.data_json;
-            try {
-                const parsed = JSON.parse(d.data_json);
-                if(parsed.inventory) preview = `${parsed.inventory.length} items`;
-                else if(parsed.sales) preview = `${parsed.sales.length} sales`;
-                else preview = d.data_json.length>40 ? d.data_json.slice(0,40)+'...' : d.data_json;
-            } catch(e) {}
-            return `<tr><td>${d.username}</td><td>${d.data_type}</td><td>${preview}</td><td>${d.updated_at}</td></tr>`;
-        }).join('');
+        // USERS TABLE
+        if (res.users.length === 0) {
+            document.getElementById('usersTable').innerHTML = '<tr><td colspan="4" class="empty">No users yet.</td></tr>';
+        } else {
+            document.getElementById('usersTable').innerHTML = res.users.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td><strong>${u.username}</strong></td>
+                    <td class="email">${u.email}</td>
+                    <td>${u.created_at}</td>
+                </tr>
+            `).join('');
+        }
     });
 }
 
-function markAllRead(){
-    fetch('/api/admin/notifications/read',{method:'POST'}).then(()=>loadAllData());
+function markRead() {
+    fetch('/api/admin/notifications/read', {method: 'POST'})
+    .then(() => loadData());
 }
 
-function logout(){ window.location.href='/api/logout'; }
+function logout() {
+    fetch('/api/logout').then(() => window.location.href = '/login.html');
+}
+
+// ✅ AUTO-LOAD IF ALREADY LOGGED IN
+window.onload = function() {
+    fetch('/api/me').then(r => r.json()).then(res => {
+        if (res.isAdmin) { showContent(); loadData(); }
+    });
+};
 </script>
 </body>
 </html>
