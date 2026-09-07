@@ -18,7 +18,9 @@
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
         .form-grid.full { grid-column: 1 / -1; }
         input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 0.95rem; }
+        input:focus, textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
         .btn-primary { background: #10b981; color: white; margin-top: 8px; width:100%; font-size:1rem; padding:12px; }
+        .btn-scan { background: #3b82f6; color: white; margin-top: 4px; }
         .item { background: #2a3447; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
         .item-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:8px; margin-top:8px; }
         .item-url { font-size:0.8rem; color:#93c5fd; word-break:break-all; margin:6px 0; }
@@ -27,6 +29,10 @@
         .btn-status { background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-left: 8px; }
         .empty { color: #94a3b8; text-align: center; padding: 30px; }
         label { font-size:0.85rem; color:#cbd5e1; display:block; margin-bottom:4px; }
+        .auto-fill-box { background: #1e3a5f; border-left: 3px solid #10b981; padding: 10px; border-radius: 8px; margin-top: 8px; display: none; }
+        .auto-fill-box.show { display: block; }
+        .hint { font-size:0.78rem; color:#94a3b8; margin-top: 4px; }
+        .tag { display: inline-block; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin: 2px; }
     </style>
 </head>
 <body>
@@ -39,14 +45,39 @@
             </div>
         </div>
 
-        <!-- ADD ITEM FORM — NOW WITH URL! -->
+        <!-- ADD ITEM FORM — WITH AUTO-FILL URL! -->
         <div class="card">
-            <h2>➕ Add New Item</h2>
+            <h2>➕ Add New Item — Paste URL & Auto-Fill ✨</h2>
+            
+            <div class="form-grid full">
+                <label>🔗 Listing URL (Vinted, eBay, etc)</label>
+                <input type="url" id="itemUrl" placeholder="Paste your link here...">
+                <button class="btn btn-scan" onclick="scanUrl()">🔍 AUTO-FILL FROM URL</button>
+                <div class="hint">Click the button and it will try to fill in all details automatically!</div>
+            </div>
+
+            <div class="auto-fill-box" id="autoPreview">
+                <strong>✨ Auto-Filled Preview:</strong>
+                <div id="previewContent" style="margin-top:6px; font-size:0.9rem;"></div>
+            </div>
+
+            <div style="margin-top:15px;"></div>
+
             <div class="form-grid">
-                <div><label>Item Name</label><input type="text" id="itemName" placeholder="e.g. Nike Trainers"></div>
+                <div><label>Item Name / Title</label><input type="text" id="itemName" placeholder="e.g. Nike Air Max"></div>
+                <div><label>Colour</label><input type="text" id="itemColour" placeholder="e.g. Black / White"></div>
+                <div><label>Size</label><input type="text" id="itemSize" placeholder="e.g. UK 9 / EU 43"></div>
+                <div><label>Material</label><input type="text" id="itemMaterial" placeholder="e.g. Leather / Cotton"></div>
                 <div><label>Buy Price (£)</label><input type="number" step="0.01" id="buyPrice" placeholder="0.00"></div>
-                <div><label>Status</label><select id="itemStatus"><option value="available">✅ Available</option><option value="pending">⏳ Pending</option><option value="sold">💰 Sold</option></select></div>
-                <div class="form-grid full"><label>🔗 Listing URL (Vinted/eBay/etc)</label><input type="url" id="itemUrl" placeholder="Paste your link here..."></div>
+                <div><label>Status</label><select id="itemStatus">
+                    <option value="available">✅ Available</option>
+                    <option value="pending">⏳ Pending</option>
+                    <option value="sold">💰 Sold</option>
+                </select></div>
+                <div class="form-grid full">
+                    <label>Description / Details</label>
+                    <textarea id="itemDesc" rows="3" placeholder="Paste description or notes..."></textarea>
+                </div>
             </div>
             <button class="btn btn-primary" onclick="addItem()">➕ Save Item</button>
         </div>
@@ -61,6 +92,81 @@
 <script>
 let inventory = [];
 
+// 🔍 AUTO-FILL FROM URL — MAGIC HAPPENS HERE!
+function scanUrl() {
+    const url = document.getElementById('itemUrl').value.trim().toLowerCase();
+    if (!url) return alert('⚠️ Paste a URL first!');
+
+    let extracted = { name:'', colour:'', size:'', material:'', price:'', desc:'' };
+
+    // VINTED URL PARSING
+    if (url.includes('vinted')) {
+        // Extract title from URL
+        const parts = url.split('/');
+        const lastPart = parts[parts.length-1].replace(/-/g, ' ');
+        
+        // Try to extract details from URL text
+        extracted.name = cleanText(lastPart);
+        extracted.colour = findColour(lastPart);
+        extracted.size = findSize(lastPart);
+        extracted.material = findMaterial(lastPart);
+        extracted.desc = `Auto-extracted from Vinted link\n${url}`;
+    }
+    // EBAY URL PARSING
+    else if (url.includes('ebay')) {
+        extracted.name = 'eBay Listing';
+        extracted.desc = `Auto-extracted from eBay link\n${url}`;
+        extracted.colour = findColour(url);
+        extracted.size = findSize(url);
+    }
+    // ANY OTHER LINK
+    else {
+        extracted.name = 'Listing Item';
+        extracted.desc = `Link: ${url}`;
+    }
+
+    // AUTO-FILL ALL THE BOXES! ✨
+    document.getElementById('itemName').value = extracted.name;
+    document.getElementById('itemColour').value = extracted.colour;
+    document.getElementById('itemSize').value = extracted.size;
+    document.getElementById('itemMaterial').value = extracted.material;
+    document.getElementById('itemDesc').value = extracted.desc;
+
+    // SHOW PREVIEW TO USER
+    const preview = document.getElementById('autoPreview');
+    document.getElementById('previewContent').innerHTML = `
+        ${extracted.name?`<span class="tag">📝 Title: ${extracted.name}</span>`:''}
+        ${extracted.colour?`<span class="tag">🎨 ${extracted.colour}</span>`:''}
+        ${extracted.size?`<span class="tag">📏 ${extracted.size}</span>`:''}
+        ${extracted.material?`<span class="tag">🧵 ${extracted.material}</span>`:''}
+    `;
+    preview.classList.add('show');
+}
+
+// 🧠 SMART DETECTION FUNCTIONS
+function cleanText(str) {
+    return str.replace(/[0-9]{4,}/g,'').replace(/vinted|listing|item|buy|sell|-/gi,' ').trim();
+}
+function findColour(str) {
+    const colours = ['black','white','red','blue','green','yellow','pink','purple','grey','gray','silver','gold','orange','brown','navy','beige','cream','white','navy blue','light blue','dark blue','olive','khaki','maroon','burgundy','teal','turquoise'];
+    str = str.toLowerCase();
+    for(let c of colours){ if(str.includes(c)) return capitalize(c); }
+    return '';
+}
+function findSize(str) {
+    const match = str.match(/(uk|eu|us|cm|size)\s*(\d+[.,]?\d*(\s*[/-]\s*\d+[.,]?\d*)?)/gi) || str.match(/(\d+)\s*-\s*(\d+)/) || str.match(/(\d+)(?:\s*)?(cm|uk|eu|fr)/gi);
+    if(match) return match[0].toUpperCase().replace(/\s+/g,' ');
+    return '';
+}
+function findMaterial(str) {
+    const materials = ['leather','cotton','wool','polyester','nylon','denim','canvas','suede','mesh','rubber','plastic','silk','linen','velvet','synthetic','faux leather','genuine leather'];
+    str = str.toLowerCase();
+    for(let m of materials){ if(str.includes(m)) return capitalize(m); }
+    return '';
+}
+function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// 📦 INVENTORY FUNCTIONS
 function renderItems() {
     const list = document.getElementById('inventoryList');
     if (inventory.length === 0) { 
@@ -69,8 +175,12 @@ function renderItems() {
     }
     list.innerHTML = inventory.map((item, index) => `
         <div class="item">
-            <strong>${item.name}</strong> — £${item.price.toFixed(2)}
-            ${item.url ? `<div class="item-url">🔗 <a href="${item.url}" target="_blank">${item.url.length>50?item.url.slice(0,50)+'...':item.url}</a></div>` : ''}
+            <strong>${item.name || 'Unnamed Item'}</strong> — £${(item.price||0).toFixed(2)}
+            ${item.colour ? `<span class="tag">🎨 ${item.colour}</span>` : ''}
+            ${item.size ? `<span class="tag">📏 ${item.size}</span>` : ''}
+            ${item.material ? `<span class="tag">🧵 ${item.material}</span>` : ''}
+            ${item.url ? `<div class="item-url">🔗 <a href="${item.url}" target="_blank">Open Listing</a></div>` : ''}
+            ${item.desc ? `<div style="font-size:0.85rem; color:#cbd5e1; margin-top:4px;">${item.desc.slice(0,100)}${item.desc.length>100?'...':''}</div>` : ''}
             <div class="item-row">
                 <span>Status: <button class="btn-status" onclick="toggleStatus(${index})">${item.status}</button></span>
                 <button class="btn-delete" onclick="deleteItem(${index})">🗑️ Delete</button>
@@ -81,20 +191,29 @@ function renderItems() {
 
 function addItem() {
     const name = document.getElementById('itemName').value.trim();
+    const colour = document.getElementById('itemColour').value.trim();
+    const size = document.getElementById('itemSize').value.trim();
+    const material = document.getElementById('itemMaterial').value.trim();
     const price = parseFloat(document.getElementById('buyPrice').value);
     const status = document.getElementById('itemStatus').value;
     const url = document.getElementById('itemUrl').value.trim();
+    const desc = document.getElementById('itemDesc').value.trim();
     
-    if (!name || isNaN(price)) return alert('⚠️ Fill in name and price!');
+    if (!name || isNaN(price)) return alert('⚠️ Fill in name and buy price!');
     
-    inventory.unshift({ name, price, status, url });
+    inventory.unshift({ name, colour, size, material, price, status, url, desc });
     saveToDB(); 
     renderItems();
     
-    // Clear form
+    // CLEAR ALL FORM FIELDS
     document.getElementById('itemName').value = ''; 
+    document.getElementById('itemColour').value = '';
+    document.getElementById('itemSize').value = '';
+    document.getElementById('itemMaterial').value = '';
     document.getElementById('buyPrice').value = ''; 
     document.getElementById('itemUrl').value = '';
+    document.getElementById('itemDesc').value = '';
+    document.getElementById('autoPreview').classList.remove('show');
 }
 
 function toggleStatus(index) {
