@@ -93,6 +93,7 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// ========== ✅ FIXED AUTH CHECK — ADMIN ROUTES ARE PUBLIC! ==========
 function requireAuth(req, res, next) {
   const publicPaths = [
     '/login.html',
@@ -103,16 +104,11 @@ function requireAuth(req, res, next) {
     '/api/admin/alldata',
     '/api/admin/notifications/read'
   ];
-  
-  // ✅ SIMPLE CHECK: if path STARTS WITH any public path → ALLOW IT!
   if (publicPaths.some(p => req.path.startsWith(p))) {
     return next();
   }
-
   if (!req.session.user) return res.redirect('/login.html');
   next();
-}
-}
 }
 app.use(requireAuth);
 
@@ -218,31 +214,7 @@ app.post('/api/transactions/add', (req, res) => {
   res.json({ success: true, txId: result.lastInsertRowid });
 });
 
-// ========== ADMIN PANEL API — SIMPLE & RELIABLE ==========
-app.post('/api/admin/login', (req, res) => {
-  if (req.body.password === process.env.ADMIN_PASSWORD) {
-    req.session.isAdmin = true;
-    res.json({ success: true });
-  } else {
-    res.json({ success: false, error: 'Wrong master password' });
-  }
-});
-
-app.get('/api/admin/alldata', (req, res) => {
-  if (!req.session.isAdmin) return res.json({ error: 'Unauthorized' });
-  const users = mainDB.prepare('SELECT id, username, email, created_at FROM users ORDER BY id DESC').all();
-  const notifications = adminDB.prepare('SELECT * FROM notifications ORDER BY timestamp DESC LIMIT 50').all();
-  res.json({ users, notifications });
-});
-
-app.post('/api/admin/notifications/read', (req, res) => {
-  if (!req.session.isAdmin) return res.json({ error: 'Unauthorized' });
-  adminDB.prepare('UPDATE notifications SET read = 1').run();
-  res.json({ success: true });
-});
-
-console.log('🚀 RR Resell Tracker — FULL SYSTEM ONLINE');
-// ========== ADMIN PANEL API ENDPOINTS ==========
+// ========== ✅ ADMIN PANEL API — COMPLETE & WORKING ==========
 app.post('/api/admin/login', (req, res) => {
   if (req.body.password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
@@ -265,6 +237,5 @@ app.post('/api/admin/notifications/read', (req, res) => {
   res.json({ success: true });
 });
 
-// ========== THIS MUST BE THE VERY LAST LINE ==========
 console.log('🚀 RR Resell Tracker — FULL SYSTEM ONLINE');
 app.listen(PORT);
