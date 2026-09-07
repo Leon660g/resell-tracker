@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI GENERATOR — ResellTracker</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Courier New',monospace; }
+        :root { --g:#00ff41; --gd:#00aa22; --bg:#050505; --card:#0a1a0a; --border:#005511; }
+        body { background:var(--bg); color:var(--g); }
+        .bar { display:flex; background:rgba(0,30,5,0.9); border-bottom:2px solid var(--g); padding:12px 25px; align-items:center; position:sticky; top:0; }
+        .logo { font-size:1.3rem; font-weight:bold; margin-right:auto; }
+        .nav { display:flex; gap:8px; }
+        .btn { padding:9px 14px; border:1px solid var(--g); background:transparent; color:var(--g); border-radius:4px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+        .btn:hover, .btn.active { background:var(--g); color:#002200; box-shadow:0 0 12px var(--g); }
+        .wrap { max-width:800px; margin:0 auto; padding:30px; }
+        .title { font-size:1.6rem; margin-bottom:25px; text-align:center; }
+        .box { border:1px solid var(--g); background:var(--card); padding:30px; border-radius:8px; box-shadow:0 0 20px rgba(0,255,65,0.15); }
+        textarea { width:100%; padding:14px; background:#081a08; border:1px solid var(--border); color:var(--g); border-radius:6px; font-size:15px; height:100px; outline:none; margin-bottom:15px; }
+        textarea:focus { border-color:var(--g); box-shadow:0 0 10px var(--g); }
+        .gen { width:100%; padding:14px; background:linear-gradient(180deg,var(--g),var(--gd)); color:#002200; border:none; border-radius:6px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 0 15px var(--g); transition:all 0.2s; }
+        .gen:hover { box-shadow:0 0 30px var(--g); transform:translateY(-2px); }
+        .gen:disabled { opacity:0.6; transform:none; }
+        .result { margin-top:25px; display:none; }
+        .result.show { display:block; }
+        img { width:100%; border-radius:8px; border:1px solid var(--border); box-shadow:0 0 20px rgba(0,255,65,0.1); }
+        .tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px; }
+        .tag { padding:6px 12px; border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; transition:all 0.2s; }
+        .tag:hover { border-color:var(--g); color:var(--g); box-shadow:0 0 8px var(--g); }
+    </style>
+</head>
+<body>
+
+<div class="bar">
+    <div class="logo">▶ RESOLTRACKER</div>
+    <div class="nav">
+        <button class="btn" onclick="location.href='dashboard.html'">Dashboard</button>
+        <button class="btn" onclick="location.href='sales.html'">Sales</button>
+        <button class="btn" onclick="location.href='inventory.html'">Inventory</button>
+        <button class="btn" onclick="location.href='buyers.html'">Buyers</button>
+        <button class="btn active">🎨 AI Images</button>
+        <button class="btn red" style="border-color:#ff4444; color:#ff4444;" onclick="location.href='/api/logout'">LOGOUT</button>
+    </div>
+</div>
+
+<div class="wrap">
+    <h1 class="title glow">▸ AI PRODUCT IMAGE GENERATOR</h1>
+    <div class="box">
+        <div class="tags">
+            <span class="tag" onclick="add('sneakers, side view, white background, studio lighting')">👟 Sneakers</span>
+            <span class="tag" onclick="add('denim jacket, texture, white background')">🧥 Jacket</span>
+            <span class="tag" onclick="add('t-shirt, flat lay, minimalist aesthetic')">👕 T-Shirt</span>
+            <span class="tag" onclick="add('designer bag, luxury, elegant presentation')">👜 Bag</span>
+            <span class="tag" onclick="add('watch, premium, clean white background')">⌚ Watch</span>
+        </div>
+        <textarea id="prompt" placeholder="Describe your item... e.g. 'Vintage Nike hoodie, grey, clean white background, professional product photo'"></textarea>
+        <button class="gen" id="genbtn" onclick="generate()">✨ GENERATE IMAGE</button>
+        <div id="res" class="result">
+            <img id="img">
+            <p style="text-align:center; margin-top:12px; color:#00aa22;">📸 Right-click → Save image → attach to your inventory/sale item</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function add(t){ document.getElementById('prompt').value=t; }
+async function generate(){
+    const p=document.getElementById('prompt').value.trim();
+    if(!p) return;
+    const b=document.getElementById('genbtn');
+    b.textContent='⏳ GENERATING...'; b.disabled=true;
+    const r=await fetch('/api/generate-image',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({prompt:p})
+    });
+    const d=await r.json();
+    if(d.success){
+        document.getElementById('img').src=d.imageUrl;
+        document.getElementById('res').classList.add('show');
+    }
+    b.textContent='✨ GENERATE IMAGE'; b.disabled=false;
+}
+</script>
+</body>
+</html>
