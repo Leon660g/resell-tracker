@@ -1,3 +1,7 @@
+// ✅ YOUR PASSWORDS — CHANGE THESE!
+process.env.ADMIN_PASSWORD = "471831";
+process.env.SESSION_SECRET = "mynameisleon123";
+
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
