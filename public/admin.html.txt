@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔒 Admin Panel — RR Resell Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: #0f172a; color: white; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        h1 { font-size: 1.8rem; }
+        .btn { padding: 10px 20px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
+        .btn-logout { background: #ef4444; color: white; }
+        .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+        .card h2 { font-size: 1.2rem; margin-bottom: 15px; color: #a855f7; display: flex; justify-content: space-between; align-items: center; }
+        .badge { background: #ef4444; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+        .notification { background: #1e293b; border-left: 4px solid #10b981; padding: 12px; margin-bottom: 8px; border-radius: 8px; }
+        .notification.unread { background: #2a3447; border-left-color: #ef4444; }
+        .notification-time { color: #94a3b8; font-size: 0.8rem; margin-top: 4px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        input, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; }
+        .btn-primary { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; margin-top: 10px; }
+        .hidden { display: none !important; }
+        .access-denied { text-align: center; padding: 60px 20px; }
+        .access-denied h2 { color: #ef4444; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>🔒 Admin Panel — Master Control</h1><button class="btn btn-logout" onclick="logout()">🚪 Logout</button></div>
+        <div id="accessDenied" class="access-denied"><h2>⛔ ACCESS DENIED</h2><p>Enter your Master Admin Password on login page.</p></div>
+        <div id="adminContent" class="hidden">
+            <div class="card"><h2>🔔 Signup Notifications <span id="notifBadge" class="badge" style="display:none;">0 New</span></h2>
+                <button class="btn btn-primary" style="padding:6px 12px; font-size:0.85rem; margin-bottom:15px;" onclick="markAllRead()">✅ Mark All Read</button>
+                <div id="notificationsList"><p style="color:#94a3b8;">Loading...</p></div>
+            </div>
+            <div class="card"><h2>👥 All Registered Users</h2><table><thead><tr><th>ID</th><th>Username</th><th>Created</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+            <div class="card"><h2>📊 All User Data</h2><table><thead><tr><th>User</th><th>Data Type</th><th>Preview</th><th>Updated</th></tr></thead><tbody id="dataBody"></tbody></table></div>
+            <div class="card"><h2>💾 Master Database</h2>
+                <div class="form-grid"><div><label>Category</label><input type="text" id="cat" placeholder="e.g. Finance"></div><div><label>Label</label><input type="text" id="label" placeholder="e.g. Total Profit"></div><div style="grid-column:1/-1;"><label>Content</label><textarea id="content" rows="4" placeholder="Private data"></textarea></div><div style="grid-column:1/-1;"><label>Notes</label><input type="text" id="notes" placeholder="Optional"></div></div>
+                <button class="btn btn-primary" onclick="addRecord()">➕ Save Record</button>
+            </div>
+            <div class="card"><h2>📋 Master Records</h2><table><thead><tr><th>Category</th><th>Label</th><th>Content</th><th>Created</th></tr></thead><tbody id="masterBody"></tbody></table></div>
+        </div>
+    </div>
+<script>
+fetch('/api/me').then(r=>r.json()).then(res=>{if(res.isAdmin){document.getElementById('accessDenied').classList.add('hidden');document.getElementById('adminContent').classList.remove('hidden');loadAllData();}});
+function loadAllData(){fetch('/api/admin/alldata').then(r=>r.json()).then(res=>{
+    const notifContainer=document.getElementById('notificationsList');
+    const unreadCount=res.notifications.filter(n=>!n.read).length;
+    const badge=document.getElementById('notifBadge');
+    if(unreadCount>0){badge.style.display='inline';badge.textContent=unreadCount+' New';}
+    if(res.notifications.length===0){notifContainer.innerHTML='<p style="color:#94a3b8;">No notifications yet.</p>';}
+    else{notifContainer.innerHTML=res.notifications.map(n=>`<div class="notification ${!n.read?'unread':''}"><strong>🚨 ${n.message}</strong><div class="notification-time">${n.timestamp}</div></div>`).join('');}
+    res.users.forEach(u=>{document.getElementById('usersBody').innerHTML+=`<tr><td>${u.id}</td><td>${u.username}</td><td>${u.created_at}</td></tr>`;});
+    res.allUserData.forEach(d=>{const preview=d.data_json.length>60?d.data_json.slice(0,60)+'...':d.data_json;document.getElementById('dataBody').innerHTML+=`<tr><td>${d.username}</td><td>${d.data_type}</td><td>${preview}</td><td>${d.updated_at}</td></tr>`;});
+    res.masterRecords.forEach(d=>{document.getElementById('masterBody').innerHTML+=`<tr><td>${d.category}</td><td>${d.label}</td><td>${d.content}</td><td>${d.created_at}</td></tr>`;});
+});}
+function markAllRead(){fetch('/api/admin/notifications/read',{method:'POST'}).then(()=>loadAllData());}
+function addRecord(){fetch('/api/admin/master/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:document.getElementById('cat').value,label:document.getElementById('label').value,content:document.getElementById('content').value,notes:document.getElementById('notes').value})}).then(()=>{alert('✅ Saved!');location.reload();});}
+function logout(){window.location.href='/api/logout';}
+</script>
+</body>
+</html>

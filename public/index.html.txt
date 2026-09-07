@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RR Resell Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .container { max-width: 900px; width: 100%; text-align: center; }
+        h1 { font-size: 2.5rem; color: white; margin-bottom: 10px; font-weight: 800; }
+        .subtitle { color: #94a3b8; margin-bottom: 50px; font-size: 1.1rem; }
+        .nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .nav-card { background: white; padding: 35px 25px; border-radius: 16px; text-decoration: none; color: #0f172a; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.25s; border-top: 5px solid; }
+        .nav-card:hover { transform: translateY(-4px); }
+        .nav-card.inventory { border-color: #10b981; }
+        .nav-card.sales { border-color: #3b82f6; }
+        .nav-card.stats { border-color: #6366f1; }
+        .emoji { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+        .user-bar { margin-top: 40px; padding: 15px 25px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; color: white; flex-wrap: wrap; gap:15px; }
+        .btn-logout { background: #ef4444; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RR Resell Tracker</h1>
+        <p class="subtitle">Track. Save. All data stored securely</p>
+        <div class="nav-grid">
+            <a href="inventory.html" class="nav-card inventory"><span class="emoji">📦</span><h2>Inventory</h2><p>Items & status</p></a>
+            <a href="sales.html" class="nav-card sales"><span class="emoji">💰</span><h2>Sales</h2><p>Record sales</p></a>
+            <a href="stats.html" class="nav-card stats"><span class="emoji">📊</span><h2>Analytics</h2><p>Totals</p></a>
+        </div>
+        <div class="user-bar"><span id="userDisplay">👤 Loading...</span><button class="btn-logout" onclick="logout()">Logout</button></div>
+    </div>
+<script>
+fetch('/api/me').then(r=>r.json()).then(res=>{if(res.user){document.getElementById('userDisplay').textContent='👤 Logged in as: '+res.user.username;}else{window.location.href='/login.html';}});
+function logout(){window.location.href='/api/logout';}
+</script>
+</body>
+</html>

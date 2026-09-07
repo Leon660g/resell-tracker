@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — RR Resell Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .card { background: white; border-radius: 20px; padding: 40px 30px; width: 100%; max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        h1 { font-size: 1.8rem; color: #0f172a; margin-bottom: 5px; font-weight: 800; text-align: center; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; font-size: 0.95rem; }
+        .tabs { display: flex; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: 600; color: #94a3b8; border-bottom: 3px solid transparent; }
+        .tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+        .form { display: none; }
+        .form.active { display: block; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #334155; font-size: 0.9rem; }
+        input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid #e2e8f0; font-size: 0.95rem; }
+        input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: linear-gradient(135deg, #10b981, #3b82f6); color: white; margin-top: 5px; }
+        .btn-primary:hover { transform: translateY(-2px); }
+        .divider { display: flex; align-items: center; gap: 15px; margin: 25px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px solid #e2e8f0; }
+        .divider span { color: #94a3b8; font-size: 0.85rem; }
+        .btn-admin { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; }
+        .error { color: #ef4444; margin-top: 12px; font-size: 0.9rem; display: none; text-align: center; }
+        .info { color: #64748b; font-size: 0.8rem; margin-top: 20px; text-align: center; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔐 RR Resell Tracker</h1>
+        <p class="subtitle">Create an account or log in</p>
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('login')">Login</div>
+            <div class="tab" onclick="showTab('signup')">Sign Up</div>
+        </div>
+        <div id="loginForm" class="form active">
+            <div class="form-group"><label>Username</label><input type="text" id="loginUser" placeholder="Enter username"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password"></div>
+            <button class="btn btn-primary" onclick="login()">🔓 Log In</button>
+            <p class="error" id="loginError">❌ Wrong username or password</p>
+        </div>
+        <div id="signupForm" class="form">
+            <div class="form-group"><label>Choose Username</label><input type="text" id="signupUser" placeholder="At least 2 characters"></div>
+            <div class="form-group"><label>Choose Password</label><input type="password" id="signupPass" placeholder="At least 4 characters"></div>
+            <button class="btn btn-primary" onclick="signup()">✨ Create Account</button>
+            <p class="error" id="signupError">❌ Error creating account</p>
+        </div>
+        <div class="divider"><span>Admin Only</span></div>
+        <div class="form-group"><label>🔑 Master Admin Password</label><input type="password" id="adminPass" placeholder="Enter master password"></div>
+        <button class="btn btn-admin" onclick="adminLogin()">🔒 Access Admin Panel</button>
+        <p class="error" id="adminError">❌ Wrong master password</p>
+        <p class="info">🔒 All data stored securely. Must be logged in to use.</p>
+    </div>
+<script>
+fetch('/api/me').then(r => r.json()).then(res => { if (res.user) window.location.href = '/inventory.html'; });
+function showTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(name+'Form').classList.add('active');
+    document.querySelectorAll('.error').forEach(e => e.style.display = 'none');
+}
+function login() {
+    fetch('/api/login', { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username:document.getElementById('loginUser').value,password:document.getElementById('loginPass').value})
+    }).then(r=>r.json()).then(res=>{if(res.success)window.location.href='/inventory.html';else document.getElementById('loginError').style.display='block';});
+}
+function signup() {
+    fetch('/api/signup', { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username:document.getElementById('signupUser').value,password:document.getElementById('signupPass').value})
+    }).then(r=>r.json()).then(res=>{if(res.success)window.location.href='/inventory.html';else{document.getElementById('signupError').textContent='❌ '+(res.error||'Error');document.getElementById('signupError').style.display='block';}});
+}
+function adminLogin() {
+    fetch('/api/admin/login', { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({password:document.getElementById('adminPass').value})
+    }).then(r=>r.json()).then(res=>{if(res.success)window.location.href='/admin.html';else document.getElementById('adminError').style.display='block';});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Stats — RR Resell Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: #0f172a; color: white; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap:15px; }
+        h1 { font-size: 1.8rem; }
+        .btn { padding: 10px 18px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-back { background: #475569; color: white; }
+        .btn-logout { background: #ef4444; color: white; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .card { background: #1e293b; border-radius: 16px; padding: 25px; text-align: center; }
+        .card h2 { font-size: 1rem; color: #94a3b8; margin-bottom: 10px; }
+        .card .big { font-size: 2.5rem; font-weight: bold; }
+        .green { color: #10b981; }
+        .blue { color: #3b82f6; }
+        .purple { color: #a855f7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Statistics</h1>
+            <div style="display:flex;gap:10px;">
+                <a href="index.html" class="btn btn-back">← Home</a>
+                <button class="btn btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="card"><h2>Items Listed</h2><div class="big green" id="totalItems">0</div></div>
+            <div class="card"><h2>Total Sales</h2><div class="big blue" id="totalSales">0</div></div>
+            <div class="card"><h2>Total Profit</h2><div class="big purple">£<span id="totalProfit">0.00</span></div></div>
+        </div>
+    </div>
+<script>
+async function loadStats() {
+    const invRes = await fetch('/api/user/load/inventory');
+    const salesRes = await fetch('/api/user/load/sales');
+    const invData = await invRes.json();
+    const salesData = await salesRes.json();
+    const items = invData.data?.inventory?.length || 0;
+    const sales = salesData.data?.sales || [];
+    document.getElementById('totalItems').textContent = items;
+    document.getElementById('totalSales').textContent = sales.length;
+    const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
+    document.getElementById('totalProfit').textContent = totalProfit.toFixed(2);
+}
+function logout() { window.location.href = '/api/logout'; }
+window.addEventListener('load', loadStats);
+</script>
+</body>
+</html>
