@@ -161,3 +161,11 @@ app.post('/api/admin/master/add', (req, res) => {
 
 console.log('🚀 Server running!');
 app.listen(PORT);
+// TEMP TEST — REMOVE LATER
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>Server WORKS! ✅</h1>
+    <p>Looking for files...</p>
+    <a href="/login.html">👉 Try /login.html</a>
+  `);
+});
